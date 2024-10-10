@@ -1,0 +1,33 @@
+# start {{ .HostName }}
+server {
+    listen 80;
+    listen [::]:80;
+	listen 443;
+	listen [::]:443;
+	server_name {{ .HostName }};
+
+    {{ if .RenderRedirect }}
+        location {{ .Path }} {
+            return 301 http://{{ .HostName }};
+        }
+    {{ end }}
+    {{ if .RenderSsl }}{{ end }}
+    {{ if .RenderAllowList }}{{ template "allowListTmpl" }}{{ end }}
+    {{ if .RenderDenyList }}{{ template "denyListTmpl" }}{{ end }}
+
+    # allow cos
+    add_header 'Access-Control-Allow-Origin' '*';
+    add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS';
+    add_header 'Access-Control-Allow-Headers' 'DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,xfilecategory,xfilename,xfilesize';
+    add_header 'Access-Control-Expose-Headers' 'Content-Length,Content-Range';
+    if ($request_method = 'OPTIONS') {
+        return 204;
+    }
+
+    # webSocket enable
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "upgrade";
+
+    # {{ template "backend" }}
+}
