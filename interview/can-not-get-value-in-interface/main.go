@@ -33,7 +33,7 @@ func main() {
 	fmt.Println(value) // 打印接口内值，打印结果：{demo}
 
 	valuePointer := &value
-	fmt.Println(*valuePointer) // 打印接口内值的地址，无法获取，panic: runtime error: invalid memory address or nil pointer dereference
+	fmt.Println(*valuePointer) // 打印接口内值的地址，无法获取，panic: runtime errors: invalid memory address or nil pointer dereference
 
 	// ----------------情形1-------------------
 	m := map[string]string{

@@ -2,10 +2,15 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"io"
 	"log"
 	"net"
 	"os"
+)
+
+var (
+	emptyError = errors.New("empty json data")
 )
 
 type ProxyBackend struct {
@@ -13,13 +18,8 @@ type ProxyBackend struct {
 	Backend []map[string]string `json:"backend"`
 }
 
-func closeNet(clientConn, remoteConn net.Conn) {
-	clientConn.Close()
-	remoteConn.Close()
-}
-
 func handleClient(clientConn net.Conn, server string, servers []map[string]string) {
-	log.Println("recv connect from ", clientConn.RemoteAddr())
+	log.Println("rec connect from ", clientConn.RemoteAddr())
 
 	var remoteAddr string
 
@@ -37,9 +37,9 @@ func handleClient(clientConn net.Conn, server string, servers []map[string]strin
 		return
 	}
 
-	defer closeNet(clientConn, remoteConn)
-
 	go func() {
+		defer remoteConn.Close()
+		defer clientConn.Close()
 		_, err = io.Copy(remoteConn, clientConn)
 		if err != nil {
 			log.Println("remoteConn to clientConn err >>> ", err)
@@ -51,26 +51,28 @@ func handleClient(clientConn net.Conn, server string, servers []map[string]strin
 		log.Println("clientConn to remoteConn err >>> ", err)
 	}
 
-	log.Printf("proxy.tmpl to %s finished\n", remoteAddr)
+	log.Printf("proxy to %s finished\n", remoteAddr)
 }
 
 func main() {
-	log.Println("v1.0.1")
+	log.Println("--------------v1.0.2--------------")
+
 	var pB ProxyBackend
+	var stop = make(chan struct{})
+
 	file, err := os.ReadFile("servers.json")
 	if err != nil {
-		log.Fatalln("servers.json not found")
+		log.Fatalln(err)
 	}
 
-	if err := json.Unmarshal(file, &pB); err != nil {
-		log.Fatalln("Unmarshal err >>> ", err)
+	if err = json.Unmarshal(file, &pB); err != nil {
+		log.Fatalln(err)
 	}
 
 	if len(pB.Listen) == 0 || len(pB.Backend) == 0 {
-		log.Fatalln("json data nil")
+		log.Fatalln(emptyError)
 	}
 
-	var stop = make(chan struct{})
 	for _, servers := range pB.Listen {
 		for server, addr := range servers {
 			log.Printf("start listen: %s   %s\n", server, addr)
@@ -78,7 +80,6 @@ func main() {
 			if err != nil {
 				panic(err)
 			}
-
 			defer listener.Close()
 
 			go func(server string) {
@@ -92,5 +93,6 @@ func main() {
 			}(server)
 		}
 	}
+
 	<-stop
 }

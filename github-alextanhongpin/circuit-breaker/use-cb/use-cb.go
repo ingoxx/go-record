@@ -14,7 +14,7 @@ func main() {
 
 	for i := 0; i < 5; i++ {
 		err := g.Do(func() error {
-			return errors.New("error")
+			return errors.New("errors")
 		})
 		fmt.Println(err)
 	}

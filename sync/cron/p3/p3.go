@@ -1,4 +1,4 @@
-// This program demonstrates how to pause all running goroutines when an error
+// This program demonstrates how to pause all running goroutines when an errors
 // occured in one of them. Consider this as a global circuit-breaker
 
 package main
@@ -70,7 +70,7 @@ func worker(ctx context.Context, inStream <-chan interface{}, numWorkers int, co
 				cond.L.Lock()
 				// Set pause to true
 				pause = i == failIndex
-				log.Println("worker", index, "encountered error at", i)
+				log.Println("worker", index, "encountered errors at", i)
 				cond.L.Unlock()
 
 				// Retry after 5 seconds

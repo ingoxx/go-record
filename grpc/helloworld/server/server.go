@@ -4,8 +4,9 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	pb "github.com/Lxb921006/Golang-practise/grpc/helloworld/helloworld"
+	pb "github.com/Lxb921006/go-record/grpc/helloworld/helloworld"
 	"google.golang.org/grpc"
+	"io"
 	"log"
 	"net"
 )
@@ -27,18 +28,22 @@ func (s *server) SayHelloWorld(ctx context.Context, req *pb.HelloRequest) (resp 
 			Message: data,
 		}
 		resp = r
+		fmt.Println(resp)
 	}
 
 	return
 }
 
 func main() {
-
 	flag.Parse()
 
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", *port))
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
+	}
+
+	if err == io.EOF {
+		log.Println(lis.Addr().String(), " client already disconnect")
 	}
 
 	s := grpc.NewServer()
@@ -47,6 +52,6 @@ func main() {
 	log.Printf("server listening at %v", lis.Addr())
 
 	if err := s.Serve(lis); err != nil {
-		log.Fatalf("failed to serve: %v", err)
+		log.Fatalf("failed to start grpc server: %v", err)
 	}
 }

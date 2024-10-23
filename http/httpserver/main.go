@@ -24,7 +24,7 @@ func main() {
 	http.HandleFunc("/work", func(w http.ResponseWriter, r *http.Request) {
 		input, err := io.ReadAll(r.Body)
 		if err != nil {
-			http.Error(w, "Internal error", http.StatusInternalServerError)
+			http.Error(w, "Internal errors", http.StatusInternalServerError)
 		}
 		defer r.Body.Close()
 

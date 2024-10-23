@@ -3,8 +3,9 @@ package main
 import (
 	"crypto/md5"
 	"encoding/hex"
+	"errors"
 	"fmt"
-	pb "github.com/Lxb921006/Golang-practise/grpc/streamrpc/streamrpc"
+	pb "github.com/Lxb921006/go-record/grpc/streamrpc/streamrpc"
 	"google.golang.org/grpc"
 	"io"
 	"log"
@@ -20,7 +21,6 @@ type server struct {
 }
 
 func (s *server) SayHelloWorld(req *pb.StreamRequest, stream pb.StreamRpcService_SayHelloWorldServer) (err error) {
-
 	log.Println("rec>>> ", req.GetName())
 
 	for range [10]struct{}{} {
@@ -45,13 +45,18 @@ func (s *server) MyMethod(stream pb.MyService_MyMethodServer) (err error) {
 }
 
 func (s *server) ProcessMsg(stream pb.MyService_MyMethodServer, done chan struct{}) (err error) {
+	log.Println("ProcessMsg data")
 	var file string
-	var chunks [][]byte
+	var chunks = make([][]byte, 1024)
 
 	for {
-		resp, err := stream.Recv()
-		if err == io.EOF {
+		resp, recErr := stream.Recv()
+		if recErr == io.EOF {
 			break
+		}
+
+		if resp == nil {
+			return errors.New("nil pointer")
 		}
 
 		if file == "" {
@@ -78,11 +83,11 @@ func (s *server) ProcessMsg(stream pb.MyService_MyMethodServer, done chan struct
 		}
 	}
 
-	log.Println(file, " recv ok, returning to md5 soon")
+	log.Println(filepath.Base(file), " recv ok, returning to md5 soon")
 
 	m, _ := s.FileMd5(file)
 
-	if err = stream.Send(&pb.MyMessage{Msg: []byte("md5"), Name: m + "-" + filepath.Base(file)}); err != nil {
+	if err = stream.Send(&pb.MyMessage{Msg: []byte(m), Name: filepath.Base(file)}); err != nil {
 		return
 	}
 

@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"flag"
-	pb "github.com/Lxb921006/Golang-practise/grpc/helloworld/helloworld"
+	pb "github.com/Lxb921006/go-record/grpc/helloworld/helloworld"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"log"
@@ -16,9 +16,9 @@ var (
 )
 
 func main() {
-	flag.Parse()
+	//flag.Parse()
 	// Set up a connection to the server.
-	conn, err := grpc.Dial(*addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.NewClient(*addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatalf("did not connect: %v", err)
 	}
@@ -29,8 +29,8 @@ func main() {
 	defer cancel()
 
 	c := pb.NewTestGrpcHelloWorldClient(conn)
-	r, err := c.SayHelloWorld(ctx, &pb.HelloRequest{Name: *name})
 
+	r, err := c.SayHelloWorld(ctx, &pb.HelloRequest{Name: *name})
 	if err != nil {
 		log.Fatalf("could not send: %v", err)
 	}

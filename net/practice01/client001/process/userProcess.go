@@ -57,14 +57,14 @@ func (up *UserProcessor) Login(u int, p string) (err error) {
 	//发送消息本体
 	err = t.SendMessage(data)
 	if err != nil {
-		err = errors.New("SendMessage error")
+		err = errors.New("SendMessage errors")
 		return
 	}
 
 	//处理服务器发回来的消息
 	mes, e3 := t.RecvMessage()
 	if e3 != nil {
-		err = errors.New("RecvMessage error")
+		err = errors.New("RecvMessage errors")
 		return
 	}
 
@@ -152,21 +152,21 @@ func (up *UserProcessor) Register(u int, p string) (err error) {
 	//转成可以表示长度的byte切片
 	err = t.SendMessage(data)
 	if err != nil {
-		err = errors.New("SendMessage error")
+		err = errors.New("SendMessage errors")
 		return
 	}
 
 	//处理服务器发回来的消息
 	mes, e3 := t.RecvMessage()
 	if e3 != nil {
-		err = errors.New("RecvMessage error")
+		err = errors.New("RecvMessage errors")
 		return
 	}
 
 	rm := UserMessage.RegisterResult{}
 	e3 = json.Unmarshal([]byte(mes.Data), &rm)
 	if e3 != nil {
-		err = errors.New("RecvMessage error")
+		err = errors.New("RecvMessage errors")
 		return
 	}
 

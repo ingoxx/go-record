@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	pb "github.com/Lxb921006/Golang-practise/grpc/streamrpc/streamrpc"
+	pb "github.com/Lxb921006/go-record/grpc/streamrpc/streamrpc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"io"
@@ -46,7 +46,7 @@ func main() {
 func Send(file string) (err error) {
 	defer wg.Done()
 
-	conn, err := grpc.Dial(":12306", grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.NewClient(":12306", grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		return
 	}

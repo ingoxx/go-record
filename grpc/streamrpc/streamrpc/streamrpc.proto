@@ -5,16 +5,17 @@ option go_package = "github.com/Lxb921006/Golang-practise/grpc;streamrpc";
 package streamrpc;
 
 
+// 流式1
+service MyService {
+  rpc MyMethod(stream MyMessage) returns (stream MyMessage) {}
+}
+
 message MyMessage {
   bytes msg = 1;
   string name = 2;
 }
 
-// 双向流式rpc
-service MyService {
-  rpc MyMethod(stream MyMessage) returns (stream MyMessage) {}
-}
-
+// 流式2
 service StreamRpcFileService {
   rpc SendFile (StreamFileRequest) returns (stream StreamFileReply) {}
 }
@@ -29,6 +30,7 @@ message StreamFileReply {
   string md5 = 1;
 }
 
+// 流式3
 service StreamRpcService {
   rpc SayHelloWorld (StreamRequest) returns (stream StreamReply) {}
 }

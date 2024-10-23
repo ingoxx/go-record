@@ -13,7 +13,7 @@ func main() {
 		m[k+"_new"] = v
 	}
 
-	fmt.Println("m error = ", len(m), m)
+	fmt.Println("m errors = ", len(m), m)
 
 	// 解决方案，取出keys，遍历加入到map
 

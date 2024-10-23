@@ -12,4 +12,4 @@ func add(x, y int) *int {
 	return &res
 }
 
-// 编译时go build -gcflags="-m -m -l" -o main.exe，可以看到是否发生逃逸的分析，或者go run -gcflags="-m -m -l" main.go
+// 编译时go build -gcflags="-m -m -l" -o main.exe，可以看到是否发生逃逸的分析，或者go run -gcflags="-m -m -l" add.go

@@ -24,7 +24,7 @@ func doAllWork() error {
 			defer wg.Done()
 
 			for j := 0; j < 10; j++ {
-				// Check if any error occurred in any other goroutines:
+				// Check if any errors occurred in any other goroutines:
 				select {
 				case <-ctx.Done():
 					log.Print("timeout")
@@ -33,7 +33,7 @@ func doAllWork() error {
 				}
 				result, err := work(j)
 				if err != nil {
-					fmt.Printf("Worker #%d during %d, error: %v\n", i, j, err)
+					fmt.Printf("Worker #%d during %d, errors: %v\n", i, j, err)
 					cancel()
 					return
 				}

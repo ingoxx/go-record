@@ -9,7 +9,7 @@ import (
 
 const nginxTmpl = `
 worker_processes  4;
-error_log  /var/log/nginx/error.log notice;
+error_log  /var/log/nginx/errors.log notice;
 pid        /var/run/nginx.pid;
 worker_rlimit_nofile 1047552;
 worker_shutdown_timeout 240s ;

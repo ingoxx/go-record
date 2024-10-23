@@ -10,7 +10,7 @@ import (
 func main() {
 	f, err := os.OpenFile("C:\\Users\\Administrator\\Desktop\\my.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
-		log.Fatalf("error opening file: %v", err)
+		log.Fatalf("errors opening file: %v", err)
 	}
 
 	defer f.Close()

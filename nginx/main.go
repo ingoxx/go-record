@@ -21,7 +21,7 @@ func isRunning() bool {
 	log.Println("isRunning")
 	processes, err := ps.Processes()
 	if err != nil {
-		klog.ErrorS(err, "unexpected error obtaining process list")
+		klog.ErrorS(err, "unexpected errors obtaining process list")
 	}
 	for _, p := range processes {
 		fmt.Println(p.Executable())
@@ -91,13 +91,13 @@ func overwrite(src, dst string) error {
 func main() {
 	_, s, err := checkNginxConfig()
 	if err != nil {
-		log.Fatalln("check error: ", err)
+		log.Fatalln("check errors: ", err)
 	}
 
 	log.Println(s)
 
 	if err := reload(); err != nil {
-		log.Fatalln("reload error: ", err)
+		log.Fatalln("reload errors: ", err)
 	}
 
 	running := isRunning()

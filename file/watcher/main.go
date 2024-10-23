@@ -28,7 +28,7 @@ func main() {
 				if !ok {
 					return
 				}
-				log.Println("error:", err)
+				log.Println("errors:", err)
 			}
 		}
 	}()

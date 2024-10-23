@@ -77,6 +77,7 @@ func main() {
 
 	close(finish)
 	wg.Wait()
+
 	close(over)
 
 	fmt.Printf("传输总共耗时 >>> %s", time.Now().Sub(now))
@@ -107,6 +108,6 @@ func replace(path string) string {
 func isMatch(file string) bool {
 	p := fmt.Sprintf("%s.*.bak$", date)
 	re := regexp.MustCompile(p)
-	re.FindString()
+	re.FindString("db")
 	return re.MatchString(file)
 }
