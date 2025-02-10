@@ -55,7 +55,7 @@ func handleClient(clientConn net.Conn, server string, servers []map[string]strin
 }
 
 func main() {
-	log.Println("--------------v1.0.2--------------")
+	log.Println("--------------v1.0.0--------------")
 
 	var pB ProxyBackend
 	var stop = make(chan struct{})
@@ -80,6 +80,7 @@ func main() {
 			if err != nil {
 				panic(err)
 			}
+
 			defer listener.Close()
 
 			go func(server string) {

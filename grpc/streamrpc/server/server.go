@@ -45,7 +45,7 @@ func (s *server) MyMethod(stream pb.MyService_MyMethodServer) (err error) {
 }
 
 func (s *server) ProcessMsg(stream pb.MyService_MyMethodServer, done chan struct{}) (err error) {
-	log.Println("ProcessMsg data")
+	log.Println("ProcessData data")
 	var file string
 	var chunks = make([][]byte, 1024)
 
@@ -60,7 +60,7 @@ func (s *server) ProcessMsg(stream pb.MyService_MyMethodServer, done chan struct
 		}
 
 		if file == "" {
-			path := "C:\\Users\\Administrator\\Desktop"
+			path := "./"
 			file = filepath.Join(path, resp.GetName())
 		}
 
@@ -91,7 +91,7 @@ func (s *server) ProcessMsg(stream pb.MyService_MyMethodServer, done chan struct
 		return
 	}
 
-	//done <- struct{}{}
+	//done <- struct_copy{}{}
 
 	return
 }
@@ -115,7 +115,7 @@ func (s *server) FileMd5(file string) (m5 string, err error) {
 }
 
 func main() {
-	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", 12306))
+	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", 12236))
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}

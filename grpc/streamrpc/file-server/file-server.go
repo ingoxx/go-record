@@ -20,14 +20,14 @@ type server struct {
 func (s *server) MyMethod(stream pb.MyService_MyMethodServer) (err error) {
 	log.Println("rec data")
 
-	if err = s.ProcessMsg(stream); err != nil {
+	if err = s.ProcessData(stream); err != nil {
 		log.Println(err)
 	}
 
 	return
 }
 
-func (s *server) ProcessMsg(stream pb.MyService_MyMethodServer) (err error) {
+func (s *server) ProcessData(stream pb.MyService_MyMethodServer) (err error) {
 	log.Println("process msg")
 	//stream := <-s.work
 
@@ -73,8 +73,6 @@ func (s *server) ProcessMsg(stream pb.MyService_MyMethodServer) (err error) {
 		log.Println("send err ", err)
 		return
 	}
-
-	//s.done <- struct{}{}
 
 	return
 }

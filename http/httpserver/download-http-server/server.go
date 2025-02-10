@@ -52,7 +52,9 @@ func (r *Resp) R(writer http.ResponseWriter, request *http.Request) error {
 	if err != nil {
 		return err
 	}
-	log.Printf("[%v]  %s  %s\n", 10000, request.RemoteAddr, request.URL)
+
+	log.Printf("[%v]  %s  %s\n", r.Status, request.RemoteAddr, request.URL)
+
 	return nil
 }
 
@@ -296,6 +298,7 @@ func sendFileContent(writer http.ResponseWriter, request *http.Request) {
 }
 
 func awsCdnRefresh(writer http.ResponseWriter, request *http.Request) {
+	//log.Printf("receive req: %s %s %s\n", request.RemoteAddr, request.URL, request.Method)
 	var resp Resp
 	var awsResp map[string]interface{}
 	if request.Method != "GET" {
@@ -332,6 +335,7 @@ func awsCdnRefresh(writer http.ResponseWriter, request *http.Request) {
 
 	out, err := exec.CommandContext(ctx, "sh", "/root/shellscript/aws_cdn_refresh.sh", item, path).Output()
 	if err != nil {
+		log.Println("exec err: ", err, string(out))
 		resp.H(writer, request, map[string]interface{}{
 			"esg":    string(out),
 			"status": 10004,
@@ -339,8 +343,8 @@ func awsCdnRefresh(writer http.ResponseWriter, request *http.Request) {
 		return
 	}
 
-	err = json.Unmarshal(out, &awsResp)
-	if err != nil {
+	if err = json.Unmarshal(out, &awsResp); err != nil {
+		log.Println("unmarshal err: ", err, string(out))
 		resp.H(writer, request, map[string]interface{}{
 			"esg":    err.Error(),
 			"status": 10005,
@@ -349,7 +353,7 @@ func awsCdnRefresh(writer http.ResponseWriter, request *http.Request) {
 	}
 
 	respKRM := &Resp{
-		Msg:    fmt.Sprintf("%s cdn refresh succeed", "https://hotupdate-static-new.burstedgold.com"),
+		Msg:    fmt.Sprintf("%s cdn refresh succeed", item),
 		Status: 10000,
 		Detail: awsResp,
 	}

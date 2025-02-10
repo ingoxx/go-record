@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	pb "github.com/Lxb921006/go-record/grpc/streamrpc/streamrpc"
 	"google.golang.org/grpc"
@@ -13,7 +14,21 @@ import (
 )
 
 func main() {
-	conn, err := grpc.NewClient(":12306", grpc.WithTransportCredentials(insecure.NewCredentials()))
+	addr := flag.String("addr", "", "rpc服务端地址端口") // 定义一个字符串类型的标志
+	file := flag.String("file", "30", "文件路径")     // 定义一个整数类型的标志
+	flag.Parse()
+	if *addr == "" || *file == "" {
+		_, err := fmt.Fprintln(os.Stderr, "Error: -addr跟-file都是必须参数，不能为空")
+		if err != nil {
+			return
+		}
+		os.Exit(1)
+	}
+	processData(*addr, *file)
+}
+
+func processData(addr, file string) {
+	conn, err := grpc.NewClient(fmt.Sprintf("%s", addr), grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatalf("did not connect: %v", err)
 	}
@@ -24,7 +39,6 @@ func main() {
 		log.Fatal(err)
 	}
 
-	file := "D:\\工作\\公司\\502打印机Brother MFC-8535DN驱动.EXE"
 	fr, err := os.Open(file)
 	if err != nil {
 		log.Fatalln(err)
@@ -36,15 +50,12 @@ func main() {
 		if err == io.EOF {
 			break
 		}
-
 		if n == 0 {
 			break
 		}
-
 		if err = stream.Send(&pb.MyMessage{Msg: fb[:n], Name: filepath.Base(file)}); err != nil {
 			return
 		}
-
 	}
 
 	stream.CloseSend()
@@ -59,5 +70,4 @@ func main() {
 		}
 		fmt.Printf("file: %s, md5: %s", resp.Name, string(resp.Msg))
 	}
-
 }
