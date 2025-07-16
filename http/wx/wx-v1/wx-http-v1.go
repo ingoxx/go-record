@@ -69,14 +69,44 @@ var (
 )
 
 func main() {
+	log.Println("version: v1.0.0")
+
 	http.HandleFunc("/ws", handleConnections)
 	http.HandleFunc("/get-online", handleOnline)
+	http.HandleFunc("/add-square", handleAddBasketballSquare)
+	http.HandleFunc("/show-square", handleShowBasketballSquare)
 
 	// 启动广播处理器
 	go handleBroadcast()
 
 	log.Println("Server started on :11806")
 	log.Fatal(http.ListenAndServe(":11806", nil))
+}
+
+func handleShowBasketballSquare(w http.ResponseWriter, r *http.Request) {
+	var rp = Resp{w: w}
+	if r.Method != http.MethodGet {
+		rp.h(Resp{
+			Msg:  "invalid request",
+			Code: 1001,
+			Data: "0",
+		})
+		return
+	}
+
+}
+
+func handleAddBasketballSquare(w http.ResponseWriter, r *http.Request) {
+	var rp = Resp{w: w}
+	if r.Method != http.MethodPost {
+		rp.h(Resp{
+			Msg:  "invalid request",
+			Code: 1001,
+			Data: "0",
+		})
+		return
+	}
+
 }
 
 func handleOnline(w http.ResponseWriter, r *http.Request) {
@@ -105,7 +135,7 @@ func handleOnline(w http.ResponseWriter, r *http.Request) {
 		rp.h(Resp{
 			Msg:  fmt.Sprintf("'%s' not found", gid),
 			Code: 1003,
-			Data: ol,
+			Data: "0",
 		})
 		return
 	}
@@ -155,6 +185,9 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 	group.Lock.Lock()
 	group.Clients[ws] = true
 	userCount := len(group.Clients)
+	if err := redis.NewRM().Set(groupID, userCount); err != nil {
+		log.Printf("[ERROR] 写入redis失败, 错误信息：%v", err)
+	}
 	group.Lock.Unlock()
 
 	log.Printf("用户 %s 加入群 %s，当前人数: %d", initMsg.UserID, groupID, userCount)
@@ -187,7 +220,7 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 			delete(group.Clients, ws)
 			userCount = len(group.Clients)
 			if err := redis.NewRM().Set(msg.GroupID, userCount); err != nil {
-				log.Println("[ERROR] fail to save user count.")
+				log.Printf("[ERROR] 写入redis失败, 错误信息：%v", err)
 			}
 			group.Lock.Unlock()
 

@@ -9,15 +9,16 @@ import (
 )
 
 var (
-	Rds       *redis.Client
+	rds       *redis.Client
 	keyPrefix = "group-id"
+	keyGroups = "groups"
 )
 
 func init() {
-	var Rds = redis.NewClient(
+	rds = redis.NewClient(
 		&redis.Options{
-			Addr:         "193.112.111.237:6378",
-			DB:           4,
+			Addr:         "127.0.0.1:6378",
+			DB:           1,
 			MinIdleConns: 5,
 			Password:     "chatai",
 			PoolSize:     5,
@@ -28,20 +29,19 @@ func init() {
 		},
 	)
 
-	if err := Rds.Ping(); err != nil {
-		log.Fatalln("fail to connect redis, error msg: ", err)
+	if err := rds.Ping().Err(); err != nil {
+		log.Println("fail to connect redis, error msg: ", err)
 	}
+
+	log.Println("redis init completed")
 
 }
 
 type RM struct {
-	rds *redis.Client
 }
 
 func NewRM() *RM {
-	return &RM{
-		rds: Rds,
-	}
+	return &RM{}
 }
 
 func (r *RM) formatKey(key string) string {
@@ -49,11 +49,11 @@ func (r *RM) formatKey(key string) string {
 }
 
 func (r *RM) Set(key string, b interface{}) error {
-	return r.rds.Set(r.formatKey(key), b, 0).Err()
+	return rds.Set(r.formatKey(key), b, 0).Err()
 }
 
 func (r *RM) Get(key string) (string, error) {
-	result, err := r.rds.Get(r.formatKey(key)).Result()
+	result, err := rds.Get(r.formatKey(key)).Result()
 	if err != nil {
 		return result, err
 	}
@@ -63,4 +63,14 @@ func (r *RM) Get(key string) (string, error) {
 	}
 
 	return result, nil
+}
+
+func (r *RM) SetList(b []byte) error {
+	rds.RPush(keyGroups, b)
+
+	return nil
+}
+
+func (r *RM) GetList(key string, b interface{}) error {
+	return rds.Set(r.formatKey(key), b, 0).Err()
 }
