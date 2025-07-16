@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"context"
-	ce "github.com/Lxb921006/go-record/kubernetes/client-go/kubectl-plugs/p3/errors"
+	ce "github.com/ingoxx/go-record/kubernetes/client-go/kubectl-plugs/p3/errors"
 	coreV1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -56,7 +56,7 @@ func (n *KillNameSpace) getNS() *coreV1.Namespace {
 	ns := new(coreV1.Namespace)
 	ns, err := n.rs.client.CoreV1().Namespaces().Get(context.Background(), n.rs.name, metav1.GetOptions{})
 	if err != nil {
-		panic(err)
+		panic(ce.NotFoundError)
 	}
 
 	if ns.DeletionTimestamp == nil || ns.DeletionTimestamp.IsZero() {
@@ -66,7 +66,7 @@ func (n *KillNameSpace) getNS() *coreV1.Namespace {
 	return ns
 }
 
-func (n *KillNameSpace) clearNSFin() error {
+func (n *KillNameSpace) clearNSFinalizers() error {
 	ns := n.getNS()
 	if len(ns.Spec.Finalizers) != 0 {
 		ns.Spec.Finalizers = []coreV1.FinalizerName{}
@@ -79,7 +79,7 @@ func (n *KillNameSpace) clearNSFin() error {
 }
 
 func (n *KillNameSpace) KillNS() error {
-	if err := n.clearNSFin(); err != nil {
+	if err := n.clearNSFinalizers(); err != nil {
 		return err
 	}
 

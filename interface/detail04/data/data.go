@@ -3,7 +3,7 @@ package data
 import (
 	"fmt"
 
-	"github.com/Lxb921006/Golang-practise/interface/detail04/api"
+	"github.com/ingoxx/Golang-practise/interface/detail04/api"
 )
 
 type Data1 struct {

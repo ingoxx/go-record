@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/Lxb921006/Golang-practise/gzip/gzip-new"
+	"github.com/ingoxx/Golang-practise/gzip/gzip-new"
 	"log"
 )
 

@@ -240,6 +240,13 @@ func download(writer http.ResponseWriter, request *http.Request) {
 	}
 
 	f := request.URL.Query()
+
+	if f.Get("token") != "123db" {
+		b := resp.M("校验失败", 10001)
+		writer.Write(b)
+		return
+	}
+
 	if f.Get("file") == "" {
 		b := resp.M("file字段不能为空", 10001)
 		writer.Write(b)
@@ -258,7 +265,7 @@ func download(writer http.ResponseWriter, request *http.Request) {
 }
 
 func sendFileHandle(file string, w http.ResponseWriter) (err error) {
-	fp := filepath.Join("D:\\soft", file)
+	fp := filepath.Join("/nas/tempDB", file)
 	f, err := os.Open(fp)
 	if err != nil {
 		return err
@@ -330,10 +337,10 @@ func awsCdnRefresh(writer http.ResponseWriter, request *http.Request) {
 	}
 
 	var cancel context.CancelFunc
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(10))
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(50))
 	defer cancel()
 
-	out, err := exec.CommandContext(ctx, "sh", "/root/shellscript/aws_cdn_refresh.sh", item, path).Output()
+	out, err := exec.CommandContext(ctx, "bash", "/root/shellscript/aws_cdn_refresh.sh", item, path).Output()
 	if err != nil {
 		log.Println("exec err: ", err, string(out))
 		resp.H(writer, request, map[string]interface{}{

@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"flag"
-	pb "github.com/Lxb921006/go-record/grpc/helloworld/helloworld"
+	pb "github.com/ingoxx/go-record/grpc/helloworld/helloworld"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"log"

@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
-	pb "github.com/Lxb921006/Golang-practise/grpc/command/command"
+	pb "github.com/ingoxx/Golang-practise/grpc/command/command"
 	"google.golang.org/grpc"
 	"log"
 	"net"

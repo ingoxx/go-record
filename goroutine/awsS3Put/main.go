@@ -11,7 +11,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Lxb921006/Golang-practise/aws/s3"
+	"github.com/ingoxx/Golang-practise/aws/s3"
 )
 
 var (

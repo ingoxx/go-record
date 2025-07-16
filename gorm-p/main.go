@@ -1,9 +1,11 @@
 package main
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/Lxb921006/go-record/gorm-p/config"
+	"github.com/go-redis/redis"
+	"github.com/ingoxx/go-record/gorm-p/config"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -14,7 +16,8 @@ import (
 )
 
 var (
-	DB *gorm.DB
+	DB     *gorm.DB
+	rdPool *redis.Client
 )
 
 type OperateLogModel struct {
@@ -27,15 +30,18 @@ type OperateLogModel struct {
 }
 
 type User struct {
-	gorm.Model
-	Name     string `json:"name" gorm:"unique;not null"`
-	Email    string `json:"email" gorm:"unique;not null"`
-	Hobby    string `json:"-" gorm:"default:'basketball'"`
-	Tel      int    `json:"tel" gorm:"default:168888"`
-	Password string `json:"-" gorm:"not null"`
-	Roles    []Role `json:"roles" gorm:"many2many:role_users"`
-	Isopenga uint   `json:"isopenga" gorm:"default:1"`
-	Isopenqr uint   `json:"isopenqr" gorm:"default:1"`
+	ID        uint           `json:"id" gorm:"primarykey"`
+	CreatedAt time.Time      `json:"created_at"`
+	UpdatedAt time.Time      `json:"updated_at"`
+	DeletedAt gorm.DeletedAt `json:"deleted_at" gorm:"index"`
+	Name      string         `json:"name" gorm:"unique;not null"`
+	Email     string         `json:"email" gorm:"unique;not null"`
+	Hobby     string         `json:"-" gorm:"default:'basketball'"`
+	Tel       int            `json:"tel" gorm:"default:168888"`
+	Password  string         `json:"password,omitempty" gorm:"not null"`
+	Roles     []Role         `json:"roles" gorm:"many2many:role_users"`
+	Isopenga  uint           `json:"isopenga" gorm:"default:1"`
+	Isopenqr  uint           `json:"isopenqr" gorm:"default:1"`
 }
 
 type Permission struct {
@@ -81,7 +87,8 @@ func main() {
 	if err := InitPoolMysql(); err != nil {
 		log.Fatalln(err)
 	}
-	getServerKey()
+	initPoolRedis()
+	del_users()
 }
 
 func getUser() {
@@ -319,6 +326,47 @@ func DeleteUser(uid []uint) (err error) {
 	return tx.Commit().Error
 }
 
+func getUserName() {
+	var u = new(User)
+	if err := DB.Where("name = ?", "admin").Preload("Roles").Find(u).Error; err != nil {
+		return
+	}
+
+	marshal, _ := json.Marshal(u)
+
+	rdPool.Set("admin-rc", marshal, time.Second*2592000)
+
+	fmt.Println(u)
+}
+
+func del_users() {
+	var us []User
+	tx := DB.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
+	if err := tx.Where("id IN ?", []uint{19}).Find(&us).Error; err != nil {
+		tx.Rollback()
+		return
+	}
+
+	if err := tx.Select(clause.Associations).Unscoped().Delete(&us).Error; err != nil {
+		tx.Rollback()
+		return
+	}
+
+	fmt.Println("OK")
+}
+
+func getAllUsers() {
+	var us []User
+	DB.Debug().Find(&us)
+	fmt.Println(us)
+}
+
 func InitPoolMysql() (err error) {
 	DB, err = gorm.Open(mysql.New(mysql.Config{
 		DSN:                       config.MyConAddre, // DSN data source name
@@ -341,6 +389,20 @@ func InitPoolMysql() (err error) {
 	}
 
 	return sqlDB.Ping()
+}
+
+func initPoolRedis() { //初始化
+	rdPool = redis.NewClient(&redis.Options{
+		Addr:         config.RedisConAddre,
+		DB:           config.RedisUserDb,
+		MinIdleConns: 5,
+		Password:     config.RedisPwd,
+		PoolSize:     5,
+		PoolTimeout:  30 * time.Second,
+		DialTimeout:  1 * time.Second,
+		ReadTimeout:  10 * time.Second,
+		WriteTimeout: 10 * time.Second,
+	})
 }
 
 func DeleteRole(rid []uint) (err error) {

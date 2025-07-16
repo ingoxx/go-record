@@ -3,7 +3,7 @@ package main
 import (
 	"log"
 
-	"github.com/Lxb921006/Golang-practise/extract"
+	"github.com/ingoxx/Golang-practise/extract"
 )
 
 func main() {

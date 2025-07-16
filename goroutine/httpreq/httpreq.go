@@ -16,7 +16,7 @@ func main() {
 		"https://www.google.com/",
 		"https://docs.aws.amazon.com/zh_cn/inspector/latest/user/scanning-ec2.html#deep-inspection",
 		"https://docs.aws.amazon.com/aws-managed-policy/latest/reference/AmazonSSMManagedInstanceCore.html",
-		"https://github.com/Lxb921006/chat",
+		"https://github.com/ingoxx/chat",
 		"https://stackoverflow.com/",
 		"https://docs.aws.amazon.com/systems-manager/latest/userguide/agent-install-rhel.html",
 		"https://www.baidu.com/",

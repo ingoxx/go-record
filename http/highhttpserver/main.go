@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -44,7 +45,7 @@ func serve(ctx context.Context) (err error) {
 
 	log.Printf("server exited properly")
 
-	if err == http.ErrServerClosed {
+	if errors.Is(err, http.ErrServerClosed) {
 		err = nil
 	}
 

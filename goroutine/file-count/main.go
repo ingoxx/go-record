@@ -30,7 +30,7 @@ func countFiles(root string, fileCount chan<- int, wg *sync.WaitGroup) {
 }
 
 func main() {
-	dir := "/Users/liaoxuanbiao/project/golang/src/github.com/Lxb921006/Golang-practise/.git"
+	dir := "/Users/liaoxuanbiao/project/golang/src/github.com/ingoxx/Golang-practise/.git"
 	numThreads := 4
 	fileCount := make(chan int, numThreads)
 	var wg sync.WaitGroup

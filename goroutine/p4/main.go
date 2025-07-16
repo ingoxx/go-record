@@ -11,7 +11,7 @@ import (
 var (
 	wg    sync.WaitGroup
 	c     = make(chan int, 20)
-	root  = "D:/project/gin/src/github.com/Lxb921006/Golang-practise/.git"
+	root  = "D:/project/gin/src/github.com/ingoxx/Golang-practise/.git"
 	total = 0
 	count = make(chan int)
 	stop  = make(chan struct{})

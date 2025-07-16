@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"net"
 
-	Common "github.com/Lxb921006/Golang-practise/net/practice01/common"
-	UserMessage "github.com/Lxb921006/Golang-practise/net/practice01/model"
-	UserModeler "github.com/Lxb921006/Golang-practise/net/practice01/server001/model"
+	Common "github.com/ingoxx/Golang-practise/net/practice01/common"
+	UserMessage "github.com/ingoxx/Golang-practise/net/practice01/model"
+	UserModeler "github.com/ingoxx/Golang-practise/net/practice01/server001/model"
 )
 
 type UserProcessor struct {
@@ -18,7 +18,7 @@ type UserProcessor struct {
 	UserId int //这个字段的作用是标明当前的UserProcessor属于哪个UserId
 }
 
-//用户登录
+// 用户登录
 func (u *UserProcessor) LoginProcess(mes *UserMessage.Message) (err error) {
 	lm := UserMessage.LoginMessage{}
 	data := json.Unmarshal([]byte(mes.Data), &lm)
@@ -103,7 +103,7 @@ func (u *UserProcessor) LoginProcess(mes *UserMessage.Message) (err error) {
 	return
 }
 
-//用户注册
+// 用户注册
 func (u *UserProcessor) RegisterProcess(mes *UserMessage.Message) (err error) {
 	lm := UserMessage.RegisterMessage{}
 	data := json.Unmarshal([]byte(mes.Data), &lm)
@@ -185,7 +185,7 @@ func (u *UserProcessor) LoginOut(mes *UserMessage.Message) (err error) {
 	return
 }
 
-//推送所有在线用户给所有已登录的用户(除了自己)
+// 推送所有在线用户给所有已登录的用户(除了自己)
 func (u *UserProcessor) PushUserStatus(uid, status int) {
 	//遍历UserManage的OnLineUser,然后推送UserStatusChange消息给所有在线用户
 	for id, up := range UserMgr.OnLineUser { //UserMgr.OnLineUser这里存的就是所有在线的用户,遍历他们目的是为了通知他们有用户登录上线了
@@ -199,7 +199,7 @@ func (u *UserProcessor) PushUserStatus(uid, status int) {
 	}
 }
 
-//推送给所有在线用户
+// 推送给所有在线用户
 func (u *UserProcessor) PushMsgToAllUser(uid int, status int) {
 	mes := UserMessage.Message{}
 	mes.Type = UserMessage.UserStatusChangeType
@@ -236,7 +236,7 @@ func (u *UserProcessor) PushMsgToAllUser(uid int, status int) {
 	}
 }
 
-//给登录的用户推送离线消息
+// 给登录的用户推送离线消息
 func (u *UserProcessor) PushOffLineMessage() {
 	mes := UserMessage.Message{}
 	ochr := UserMessage.ChatRrcordMessageResult{}

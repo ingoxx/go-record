@@ -4,7 +4,7 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"fmt"
-	pb "github.com/Lxb921006/go-record/grpc/streamrpc/streamrpc"
+	pb "github.com/ingoxx/go-record/grpc/streamrpc/streamrpc"
 	"google.golang.org/grpc"
 	"io"
 	"log"

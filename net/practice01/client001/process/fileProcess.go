@@ -7,8 +7,8 @@ import (
 	"os"
 	"path/filepath"
 
-	Common "github.com/Lxb921006/Golang-practise/net/practice01/common"
-	"github.com/Lxb921006/Golang-practise/net/practice01/model"
+	Common "github.com/ingoxx/Golang-practise/net/practice01/common"
+	"github.com/ingoxx/Golang-practise/net/practice01/model"
 )
 
 type FileProcess struct {

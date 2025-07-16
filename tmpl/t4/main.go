@@ -9,8 +9,8 @@ import (
 )
 
 func main() {
-	tmpl := "D:\\project\\github.com\\Lxb921006\\Golang-practise\\tmpl\\t3\\server.tmpl"
-	proxy := "D:\\project\\github.com\\Lxb921006\\Golang-practise\\tmpl\\t3\\proxy.tmpl"
+	tmpl := "D:\\project\\github.com\\ingoxx\\Golang-practise\\tmpl\\t3\\server.tmpl"
+	proxy := "D:\\project\\github.com\\ingoxx\\Golang-practise\\tmpl\\t3\\proxy.tmpl"
 	file, err2 := os.ReadFile(tmpl)
 	if err2 != nil {
 		log.Fatalln(err2)

@@ -7,8 +7,8 @@ import (
 
 	"net"
 
-	Common "github.com/Lxb921006/Golang-practise/net/practice01/common"
-	UserMessage "github.com/Lxb921006/Golang-practise/net/practice01/model"
+	Common "github.com/ingoxx/Golang-practise/net/practice01/common"
+	UserMessage "github.com/ingoxx/Golang-practise/net/practice01/model"
 )
 
 type UserProcessor struct {

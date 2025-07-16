@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/Lxb921006/Golang-practise/zip/zip-format"
+	"github.com/ingoxx/Golang-practise/zip/zip-format"
 	"log"
 )
 

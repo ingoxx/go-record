@@ -10,7 +10,7 @@ import (
 
 func main() {
 	// 读取并解析主模板
-	mainTmplStr, err := os.ReadFile("D:\\project\\github.com\\Lxb921006\\Golang-practise\\tmpl\\t3\\server.tmpl")
+	mainTmplStr, err := os.ReadFile("D:\\project\\github.com\\ingoxx\\Golang-practise\\tmpl\\t3\\server.tmpl")
 	if err != nil {
 		log.Fatal("Error reading nginx.conf.tmpl:", err)
 	}
@@ -19,13 +19,13 @@ func main() {
 		log.Fatal("Error parsing nginx.conf.tmpl:", err)
 	}
 
-	redirectTmplStr, err := os.ReadFile("D:\\project\\github.com\\Lxb921006\\Golang-practise\\tmpl\\t3\\redirect.tmpl")
+	redirectTmplStr, err := os.ReadFile("D:\\project\\github.com\\ingoxx\\Golang-practise\\tmpl\\t3\\redirect.tmpl")
 	if err != nil {
 		log.Fatal("Error reading redirect.tmpl:", err)
 	}
 	redirectTmpl, err := template.New("subTmplStr").Parse(string(redirectTmplStr))
 
-	proxyTmplStr, err := os.ReadFile("D:\\project\\github.com\\Lxb921006\\Golang-practise\\tmpl\\t3\\proxy.tmpl")
+	proxyTmplStr, err := os.ReadFile("D:\\project\\github.com\\ingoxx\\Golang-practise\\tmpl\\t3\\proxy.tmpl")
 	if err != nil {
 		log.Fatal("Error reading redirect.tmpl:", err)
 	}

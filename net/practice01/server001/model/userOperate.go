@@ -5,17 +5,17 @@ import (
 	"errors"
 	"strconv"
 
-	"github.com/Lxb921006/Golang-practise/net/practice01/model"
+	"github.com/ingoxx/Golang-practise/net/practice01/model"
 
 	"github.com/go-redis/redis"
 )
 
-//这里设置全局变量是作用是,在main()执行的时候就可以给UserCdus创建实例,这样就不用每次调用UserCdus方法时都创建实例跟工厂模式配合使用
+// 这里设置全局变量是作用是,在main()执行的时候就可以给UserCdus创建实例,这样就不用每次调用UserCdus方法时都创建实例跟工厂模式配合使用
 var (
 	IuserCdus *UserCdus
 )
 
-//这里是放用户增删改查的对象,也就是对UserInfo结构体的操作
+// 这里是放用户增删改查的对象,也就是对UserInfo结构体的操作
 type UserCdus struct {
 	pool *redis.Client
 }
@@ -83,7 +83,7 @@ func (u *UserCdus) UserRegister(ur *model.RegisterMessage) (err error) {
 	return
 }
 
-//当用户登录成功后,将所有离线用户也推送给所有已经登录的客户端,如果都上线了就不推送
+// 当用户登录成功后,将所有离线用户也推送给所有已经登录的客户端,如果都上线了就不推送
 func (u *UserCdus) GetAllUserId() (ul []int, err error) {
 	data, err := u.pool.HGetAll("users").Result()
 	if err != nil {

@@ -3,8 +3,8 @@ package main
 import (
 	"fmt"
 
-	"github.com/Lxb921006/Golang-practise/test/test13/pkg1"
-	"github.com/Lxb921006/Golang-practise/test/test13/pkg2"
+	"github.com/ingoxx/Golang-practise/test/test13/pkg1"
+	"github.com/ingoxx/Golang-practise/test/test13/pkg2"
 )
 
 type Allpkg struct {

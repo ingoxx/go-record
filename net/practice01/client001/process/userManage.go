@@ -3,17 +3,17 @@ package process
 import (
 	"fmt"
 
-	CurUsersModel "github.com/Lxb921006/Golang-practise/net/practice01/client001/model"
-	UserMessage "github.com/Lxb921006/Golang-practise/net/practice01/model"
+	CurUsersModel "github.com/ingoxx/Golang-practise/net/practice01/client001/model"
+	UserMessage "github.com/ingoxx/Golang-practise/net/practice01/model"
 )
 
-//客户端也维护的一个用户列表,map类型
+// 客户端也维护的一个用户列表,map类型
 var OnLineUser map[int]*UserMessage.UserInfor = make(map[int]*UserMessage.UserInfor, 10)
 var OfflineUser []int
 
 var CurUsers CurUsersModel.CurrentUser //在用户登录成功后,就初始化CurUsers, 维护自己的Conn,及要把当前跟服务端的Conn保存起来
 
-//在客户端展示在线用户列表
+// 在客户端展示在线用户列表
 func ShowOnlineUser() {
 	fmt.Println("\t----------在线用户---------")
 	for uid, up := range OnLineUser {
@@ -23,7 +23,7 @@ func ShowOnlineUser() {
 	}
 }
 
-//在客户端展示离线用户列表
+// 在客户端展示离线用户列表
 func ShowOfflineUser() {
 	fmt.Println("\t----------离线用户---------")
 	for uid, up := range OnLineUser {
@@ -40,7 +40,7 @@ func ShowOfflineListUser() {
 	}
 }
 
-//获取服务端推送的UserStatusChange消息
+// 获取服务端推送的UserStatusChange消息
 func UpdateUserStatus(mes *UserMessage.UserStatusChange) {
 	u, ok := OnLineUser[mes.UserId]
 	if !ok {

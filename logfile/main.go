@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/Lxb921006/Golang-practise/logger"
+	"github.com/ingoxx/Golang-practise/logger"
 	"io"
 	"log"
 	"os"

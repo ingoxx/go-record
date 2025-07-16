@@ -6,7 +6,7 @@ import (
 )
 
 func main() {
-	password := "admin" + "123321" + "gin-web"
+	password := "admin" + "112233" + "gin-web"
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil || len(hashedPassword) == 0 {
 		return

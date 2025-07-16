@@ -4,7 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	pb "github.com/Lxb921006/go-record/grpc/helloworld/helloworld"
+	pb "github.com/ingoxx/go-record/grpc/helloworld/helloworld"
 	"google.golang.org/grpc"
 	"io"
 	"log"

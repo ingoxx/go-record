@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/Lxb921006/k8s-client-go/demo6/pkg"
+	"github.com/ingoxx/k8s-client-go/demo6/pkg"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"

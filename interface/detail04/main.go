@@ -2,8 +2,8 @@ package main
 
 //循环导包问题需要借助接口来解决
 import (
-	"github.com/Lxb921006/Golang-practise/interface/detail04/data"
-	"github.com/Lxb921006/Golang-practise/interface/detail04/data2"
+	"github.com/ingoxx/Golang-practise/interface/detail04/data"
+	"github.com/ingoxx/Golang-practise/interface/detail04/data2"
 )
 
 func main() {

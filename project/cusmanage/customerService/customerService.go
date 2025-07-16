@@ -4,12 +4,12 @@ import (
 	"errors"
 	"fmt"
 
-	customer01 "github.com/Lxb921006/Golang-practise/project/cusmanage/customerModel"
+	customer01 "github.com/ingoxx/Golang-practise/project/cusmanage/customerModel"
 )
 
 type CustomerSystemList []customer01.CustomerSystemField
 
-//这里的CustomerSystemList必须是指针类型，否则后面每次添加客户都会显示空因为走的是值拷贝
+// 这里的CustomerSystemList必须是指针类型，否则后面每次添加客户都会显示空因为走的是值拷贝
 func (c *CustomerSystemList) AddCustomer(a *customer01.CustomerSystemField) {
 	fmt.Println("---------客户添加----------")
 	fmt.Println()

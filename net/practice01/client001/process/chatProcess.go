@@ -8,14 +8,14 @@ import (
 	"os"
 	"strings"
 
-	Common "github.com/Lxb921006/Golang-practise/net/practice01/common"
-	UserMessage "github.com/Lxb921006/Golang-practise/net/practice01/model"
+	Common "github.com/ingoxx/Golang-practise/net/practice01/common"
+	UserMessage "github.com/ingoxx/Golang-practise/net/practice01/model"
 )
 
 type ChatProcess struct {
 }
 
-//发送群聊的消息
+// 发送群聊的消息
 func (c *ChatProcess) SendAllToUser(content string) (err error) {
 	mes := UserMessage.Message{}
 	mes.Type = UserMessage.ChatMessageType
@@ -52,7 +52,7 @@ func (c *ChatProcess) SendAllToUser(content string) (err error) {
 
 }
 
-//发送私聊的消息
+// 发送私聊的消息
 func (c *ChatProcess) SendMsgUserToUser(uid int, content string) (err error) {
 	mes := UserMessage.Message{}
 	mes.Type = UserMessage.ChatUserToUserMessageType
@@ -89,7 +89,7 @@ func (c *ChatProcess) SendMsgUserToUser(uid int, content string) (err error) {
 
 }
 
-//专门用于发送消息的方法
+// 专门用于发送消息的方法
 func (c *ChatProcess) SendMsg() (err error) {
 	id := 0
 	uid := 0

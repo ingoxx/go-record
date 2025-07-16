@@ -3,7 +3,7 @@ package model
 import (
 	"net"
 
-	"github.com/Lxb921006/Golang-practise/net/practice01/model"
+	"github.com/ingoxx/Golang-practise/net/practice01/model"
 )
 
 type CurrentUser struct {

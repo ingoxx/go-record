@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"net"
 
-	Common "github.com/Lxb921006/Golang-practise/net/practice01/common"
-	"github.com/Lxb921006/Golang-practise/net/practice01/model"
+	Common "github.com/ingoxx/Golang-practise/net/practice01/common"
+	"github.com/ingoxx/Golang-practise/net/practice01/model"
 )
 
-//这里是保持跟服务器的连接,接收服务器端发送的消息并显示在界面,如单聊,群聊信息
+// 这里是保持跟服务器的连接,接收服务器端发送的消息并显示在界面,如单聊,群聊信息
 func LoggedMenu() {
 	//显示登录之后的页面
 	ml := []string{"显示在线用户", "发送信息", "信息列表", "退出登录"}
@@ -49,7 +49,7 @@ func LoggedMenu() {
 	}
 }
 
-//和服务器端保持通信接收服务端发来的信息
+// 和服务器端保持通信接收服务端发来的信息
 func KeepConnectServer(conn net.Conn) {
 	t := &Common.TransData{
 		Conn: conn,

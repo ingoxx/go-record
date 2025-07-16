@@ -4,7 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	pb "github.com/Lxb921006/go-record/grpc/streamrpc/streamrpc"
+	pb "github.com/ingoxx/go-record/grpc/streamrpc/streamrpc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"io"

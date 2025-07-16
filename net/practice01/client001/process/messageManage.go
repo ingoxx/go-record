@@ -3,7 +3,7 @@ package process
 import (
 	"fmt"
 
-	UserMessage "github.com/Lxb921006/Golang-practise/net/practice01/model"
+	UserMessage "github.com/ingoxx/Golang-practise/net/practice01/model"
 )
 
 var (

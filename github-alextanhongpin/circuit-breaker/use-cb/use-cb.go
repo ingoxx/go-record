@@ -3,7 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
-	"github.com/Lxb921006/Golang-practise/github-alextanhongpin/circuit-breaker/cb"
+	"github.com/ingoxx/Golang-practise/github-alextanhongpin/circuit-breaker/cb"
 
 	"time"
 )

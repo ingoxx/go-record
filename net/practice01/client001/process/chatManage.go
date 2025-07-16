@@ -4,10 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 
-	UserMessage "github.com/Lxb921006/Golang-practise/net/practice01/model"
+	UserMessage "github.com/ingoxx/Golang-practise/net/practice01/model"
 )
 
-//接收群消息
+// 接收群消息
 func RecvGroupMsg(mes *UserMessage.Message) {
 
 	cr := UserMessage.ChatMessageResult{}
@@ -22,7 +22,7 @@ func RecvGroupMsg(mes *UserMessage.Message) {
 	fmt.Println()
 }
 
-//接收一对一消息
+// 接收一对一消息
 func RecvUserMsg(mes *UserMessage.Message) {
 
 	cr := UserMessage.ChatUserToUserMessageResult{}
@@ -37,7 +37,7 @@ func RecvUserMsg(mes *UserMessage.Message) {
 	fmt.Println()
 }
 
-//接收服务端推送的离线聊天记录
+// 接收服务端推送的离线聊天记录
 func RecvChatRecord(mes *UserMessage.Message) {
 
 	cr := UserMessage.ChatRrcordMessageResult{}

@@ -12,7 +12,7 @@ type Names struct {
 func main() {
 	n := Names{Names: []string{"jay", "jay2"}}
 
-	tmpl := template.Must(template.ParseFiles("D:\\project\\github.com\\Lxb921006\\Golang-practise\\tmpl\\t2\\a.tmpl"))
+	tmpl := template.Must(template.ParseFiles("D:\\project\\github.com\\ingoxx\\Golang-practise\\tmpl\\t2\\a.tmpl"))
 
 	err := tmpl.Execute(os.Stdout, n)
 	if err != nil {

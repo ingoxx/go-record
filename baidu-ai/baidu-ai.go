@@ -3,7 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/Lxb921006/Golang-practise/http/newHttp"
+	"github.com/ingoxx/Golang-practise/http/newHttp"
 	"io"
 	"log"
 	"net/http"

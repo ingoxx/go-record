@@ -4,8 +4,8 @@ import (
 	"errors"
 	"fmt"
 
-	customer02 "github.com/Lxb921006/Golang-practise/project/cusmanage/customerModel"
-	customer03 "github.com/Lxb921006/Golang-practise/project/cusmanage/customerService"
+	customer02 "github.com/ingoxx/Golang-practise/project/cusmanage/customerModel"
+	customer03 "github.com/ingoxx/Golang-practise/project/cusmanage/customerService"
 )
 
 type CustomerList struct {

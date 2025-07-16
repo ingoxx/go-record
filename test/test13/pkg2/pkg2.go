@@ -3,7 +3,7 @@ package pkg2
 import (
 	"fmt"
 
-	"github.com/Lxb921006/Golang-practise/test/test13/pkg1"
+	"github.com/ingoxx/Golang-practise/test/test13/pkg1"
 )
 
 type Pkg2 struct {
