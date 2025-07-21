@@ -11,13 +11,13 @@ import (
 var (
 	rds       *redis.Client
 	keyPrefix = "group-id"
-	keyGroups = "groups"
+	KeyGroups = "bk_list"
 )
 
 func init() {
 	rds = redis.NewClient(
 		&redis.Options{
-			Addr:         "127.0.0.1:6378",
+			Addr:         "193.112.111.237:6378",
 			DB:           1,
 			MinIdleConns: 5,
 			Password:     "chatai",
@@ -65,12 +65,15 @@ func (r *RM) Get(key string) (string, error) {
 	return result, nil
 }
 
-func (r *RM) SetList(b []byte) error {
-	rds.RPush(keyGroups, b)
+func (r *RM) GetAllData() (string, error) {
+	result, err := rds.Get(KeyGroups).Result()
+	if err != nil {
+		return result, err
+	}
 
-	return nil
-}
+	if result == "" {
+		return result, errors.New("null")
+	}
 
-func (r *RM) GetList(key string, b interface{}) error {
-	return rds.Set(r.formatKey(key), b, 0).Err()
+	return result, nil
 }

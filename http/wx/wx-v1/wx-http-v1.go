@@ -29,9 +29,9 @@ type Message struct {
 }
 
 type Resp struct {
-	Msg  string `json:"msg"`
-	Code int    `json:"code"`
-	Data string `json:"data"`
+	Msg  string      `json:"msg"`
+	Code int         `json:"code"`
+	Data interface{} `json:"data"`
 	w    http.ResponseWriter
 }
 
@@ -69,7 +69,7 @@ var (
 )
 
 func main() {
-	log.Println("version: v1.0.0")
+	log.Println("version: v1.0.1")
 
 	http.HandleFunc("/ws", handleConnections)
 	http.HandleFunc("/get-online", handleOnline)
@@ -93,7 +93,32 @@ func handleShowBasketballSquare(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
+	lng := r.FormValue("lng")
+	lat := r.FormValue("lat")
+	if lng == "" || lat == "" {
+		rp.h(Resp{
+			Msg:  "invalid parameter",
+			Code: 1002,
+			Data: "0",
+		})
+		return
+	}
 
+	ol, err := redis.NewRM().GetAllData()
+	if err != nil {
+		rp.h(Resp{
+			Msg:  err.Error(),
+			Code: 1003,
+			Data: ol,
+		})
+		return
+	}
+
+	rp.h(Resp{
+		Msg:  "ok",
+		Code: 1000,
+		Data: ol,
+	})
 }
 
 func handleAddBasketballSquare(w http.ResponseWriter, r *http.Request) {
