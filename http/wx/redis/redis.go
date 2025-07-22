@@ -1,17 +1,20 @@
 package redis
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/go-redis/redis"
+	"github.com/ingoxx/go-record/http/wx/form"
+	"github.com/ingoxx/go-record/http/wx/qqMapApi"
 	"log"
 	"time"
 )
 
 var (
-	rds       *redis.Client
-	keyPrefix = "group-id"
-	KeyGroups = "bk_list"
+	rds         *redis.Client
+	keyPrefix   = "group-id"
+	AddrListKey = "addr-check-list"
 )
 
 func init() {
@@ -65,15 +68,125 @@ func (r *RM) Get(key string) (string, error) {
 	return result, nil
 }
 
-func (r *RM) GetAllData() (string, error) {
-	result, err := rds.Get(KeyGroups).Result()
-	if err != nil {
+func (r *RM) GetAllData(key string, cnKey string) (string, error) {
+	result, err := r.Get(key)
+	if err != nil && !errors.Is(err, redis.Nil) {
 		return result, err
 	}
 
 	if result == "" {
-		return result, errors.New("null")
+		search, err := qqMapApi.NewTxMapApi(cnKey).KeyWordSearch()
+		if err != nil {
+			return result, err
+		}
+		b, err := json.Marshal(&search)
+		if err != nil {
+			return result, err
+		}
+		if err := r.Set(key, b); err != nil {
+			return result, err
+		}
+
+		return string(b), nil
 	}
 
 	return result, nil
+}
+
+func (r *RM) Update(key, id string) ([]qqMapApi.SaveInRedis, error) {
+	var dataList []qqMapApi.SaveInRedis
+	result, err := r.Get(key)
+	if err != nil && !errors.Is(err, redis.Nil) {
+		return dataList, err
+	}
+
+	if err := json.Unmarshal([]byte(result), &dataList); err != nil {
+		return dataList, err
+	}
+
+	list, err := r.GetAddrList() // 遍历获取审核列表，找到对应id将其更新到指定key的数据中
+	if err != nil {
+		return dataList, err
+	}
+
+	for _, data := range list {
+		if data.Id == id {
+			ad := qqMapApi.SaveInRedis{
+				Id:     data.Id,
+				Tags:   []string{"篮球场"},
+				Img:    "https://mp-578c2584-f82c-45e7-9d53-51332c711501.cdn.bspapp.com/wx-fbs/bk3.svg",
+				Addr:   data.Addr,
+				Lat:    data.Lat,
+				Lng:    data.Lng,
+				UserId: data.UserId,
+				Title:  data.Addr,
+			}
+			dataList = append(dataList, ad)
+			break
+		}
+
+	}
+
+	b, err := json.Marshal(dataList)
+	if err := json.Unmarshal([]byte(result), &dataList); err != nil {
+		return dataList, err
+	}
+
+	if err := r.Set(key, b); err != nil {
+		return dataList, err
+	}
+
+	return dataList, nil
+}
+
+// GetAddrList 所有用户添加的篮球场地址列表
+func (r *RM) GetAddrList() ([]form.AddAddrForm, error) {
+	var dataList []form.AddAddrForm
+	result, err := r.Get(AddrListKey)
+	if err != nil && !errors.Is(err, redis.Nil) {
+		return dataList, err
+	}
+
+	if errors.Is(err, redis.Nil) {
+		dataList = make([]form.AddAddrForm, 0)
+		b, err := json.Marshal(&dataList)
+		if err != nil {
+			return dataList, err
+		}
+		if err := r.Set(AddrListKey, b); err != nil {
+			return dataList, err
+		}
+		return dataList, nil
+	}
+
+	if err := json.Unmarshal([]byte(result), &dataList); err != nil {
+		return dataList, err
+	}
+
+	return dataList, nil
+}
+
+// UserAddAddrReq 用户提交添加篮球场地址的请求
+func (r *RM) UserAddAddrReq(data form.AddAddrForm) error {
+	var dataList []form.AddAddrForm
+	result, err := r.Get(AddrListKey)
+	if err != nil && !errors.Is(err, redis.Nil) {
+		return err
+	}
+
+	if err := json.Unmarshal([]byte(result), &dataList); err != nil {
+		return err
+	}
+
+	dataList = append(dataList, data)
+	b, err := json.Marshal(&dataList)
+	if err != nil {
+		return err
+	}
+
+	if err := r.Set(AddrListKey, b); err != nil {
+		return err
+	}
+
+	return nil
 }

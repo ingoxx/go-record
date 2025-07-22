@@ -42,7 +42,7 @@ func getTimePoints(days int) []int64 {
 
 func queryCpuLoadBySegments(ctx context.Context, rdb *redis.Client, ip string, segments []int64) (map[string][]CpuLoad, error) {
 	key := fmt.Sprintf("cpu_loads_%s", ip)
-	values, err := rdb.LRange(ctx, key, 0, -1).Result()
+	values, err := rdb.LRange(key, 0, -1).Result()
 	if err != nil {
 		return nil, err
 	}
@@ -77,7 +77,7 @@ func formatForVCharts(data map[string][]CpuLoad) VChartData {
 		}
 		avg := sum / float64(len(group))
 		rows = append(rows, map[string]any{
-			"时间":  label,
+			"时间":    label,
 			"load1": fmt.Sprintf("%.2f", avg),
 		})
 	}

@@ -3,12 +3,20 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/go-playground/validator/v10"
+	"github.com/ingoxx/go-record/http/wx/form"
 	"github.com/ingoxx/go-record/http/wx/redis"
+	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"sync"
 
 	"github.com/gorilla/websocket"
+)
+
+var (
+	validate = validator.New()
 )
 
 // Group 一个群聊包含多个客户端连接 + 消息历史
@@ -69,12 +77,16 @@ var (
 )
 
 func main() {
-	log.Println("version: v1.0.1")
+	log.Println("version: v1.0.3")
 
 	http.HandleFunc("/ws", handleConnections)
 	http.HandleFunc("/get-online", handleOnline)
-	http.HandleFunc("/add-square", handleAddBasketballSquare)
+	http.HandleFunc("/user-add-square", handleAddBasketballSquare)
+	http.HandleFunc("/del-square", handleDelAddrCheck)
+	http.HandleFunc("/check-list", handleCheckAddAddrList)
+	http.HandleFunc("/add-square-pass", handlePassAddCheck)
 	http.HandleFunc("/show-square", handleShowBasketballSquare)
+	http.HandleFunc("/wx-login", handleWxLogin)
 
 	// 启动广播处理器
 	go handleBroadcast()
@@ -83,6 +95,86 @@ func main() {
 	log.Fatal(http.ListenAndServe(":11806", nil))
 }
 
+func handleWxLogin(w http.ResponseWriter, r *http.Request) {
+	var rp = Resp{w: w}
+	if r.Method != "POST" {
+		rp.h(Resp{
+			Msg:  "invalid request",
+			Code: 1001,
+			Data: "0",
+		})
+		return
+	}
+	var codeData map[string]interface{}
+	bd, err := io.ReadAll(r.Body)
+	if err != nil {
+		rp.h(Resp{
+			Msg:  "invalid request",
+			Code: 1003,
+			Data: "0",
+		})
+		return
+	}
+	if err = json.Unmarshal(bd, &codeData); err != nil {
+		rp.h(Resp{
+			Msg:  err.Error(),
+			Code: 1004,
+			Data: "0",
+		})
+		return
+	}
+
+	v := url.Values{}
+	v.Add("appid", "wxbb1377eff3149db4")
+	v.Add("secret", "6bae191e5e03aa4cf5731478ab513624")
+	v.Add("js_code", codeData["code"].(string))
+	v.Add("grant_type", "authorization_code")
+
+	urlName := "https://api.weixin.qq.com/sns/jscode2session?" + v.Encode()
+	re, err := http.Get(urlName)
+	if err != nil {
+		rp.h(Resp{
+			Msg:  err.Error(),
+			Code: 1005,
+			Data: "0",
+		})
+		return
+	}
+
+	defer re.Body.Close()
+
+	b, err := io.ReadAll(re.Body)
+	if err != nil {
+		rp.h(Resp{
+			Msg:  err.Error(),
+			Code: 1006,
+			Data: "0",
+		})
+		return
+	}
+
+	var wxOpenid struct {
+		Openid string `json:"openid"`
+	}
+
+	if err := json.Unmarshal(b, &wxOpenid); err != nil {
+		rp.h(Resp{
+			Msg:  err.Error(),
+			Code: 1006,
+			Data: "0",
+		})
+		return
+	}
+
+	rp.h(Resp{
+		Msg:  "ok",
+		Code: 1000,
+		Data: wxOpenid.Openid,
+	})
+
+}
+
+// handleShowBasketballSquare 根据用户传入的坐标显示用户当前位置附近所有篮球场
 func handleShowBasketballSquare(w http.ResponseWriter, r *http.Request) {
 	var rp = Resp{w: w}
 	if r.Method != http.MethodGet {
@@ -93,9 +185,12 @@ func handleShowBasketballSquare(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
+
 	lng := r.FormValue("lng")
 	lat := r.FormValue("lat")
-	if lng == "" || lat == "" {
+	city := r.FormValue("city")
+	cityCn := r.FormValue("cityCn")
+	if lng == "" || lat == "" || city == "" || cityCn == "" {
 		rp.h(Resp{
 			Msg:  "invalid parameter",
 			Code: 1002,
@@ -104,7 +199,7 @@ func handleShowBasketballSquare(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ol, err := redis.NewRM().GetAllData()
+	ol, err := redis.NewRM().GetAllData(city, cityCn)
 	if err != nil {
 		rp.h(Resp{
 			Msg:  err.Error(),
@@ -121,6 +216,119 @@ func handleShowBasketballSquare(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// handleCheckAddAddrList 需要审核的地址列表
+func handleCheckAddAddrList(w http.ResponseWriter, r *http.Request) {
+	var rp = Resp{w: w}
+	if r.Method != http.MethodGet {
+		rp.h(Resp{
+			Msg:  "invalid request",
+			Code: 1001,
+			Data: "0",
+		})
+		return
+	}
+	uid := r.FormValue("uid")
+	if uid != "ogR3E62jXXJMbVcImRqMA1gTSegM" {
+		rp.h(Resp{
+			Msg:  "您有没有权限哟",
+			Code: 1002,
+			Data: "0",
+		})
+		return
+	}
+
+	list, err := redis.NewRM().GetAddrList()
+	if err != nil {
+		rp.h(Resp{
+			Msg:  err.Error(),
+			Code: 1003,
+			Data: "0",
+		})
+		return
+	}
+
+	rp.h(Resp{
+		Msg:  "ok",
+		Code: 1000,
+		Data: list,
+	})
+}
+
+// handleDelAddrCheck 删除不符合要求的用户提交的添加地址请求
+func handleDelAddrCheck(w http.ResponseWriter, r *http.Request) {}
+
+// handlePassAddCheck 审核通过用户提交的添加地址请求
+func handlePassAddCheck(w http.ResponseWriter, r *http.Request) {
+	var rp = Resp{w: w}
+	if r.Method != http.MethodPost {
+		rp.h(Resp{
+			Msg:  "invalid request",
+			Code: 1001,
+			Data: "0",
+		})
+		return
+	}
+
+	city := r.FormValue("city")
+	if city == "" {
+		rp.h(Resp{
+			Msg:  "invalid request",
+			Code: 1002,
+			Data: "0",
+		})
+		return
+	}
+
+	b, err := io.ReadAll(r.Body)
+	if err != nil {
+		rp.h(Resp{
+			Msg:  err.Error(),
+			Code: 1002,
+			Data: "0",
+		})
+		return
+	}
+
+	defer r.Body.Close()
+
+	var data form.PassAddrReqForm
+
+	if err := json.Unmarshal(b, &data); err != nil {
+		rp.h(Resp{
+			Msg:  err.Error(),
+			Code: 1003,
+			Data: "0",
+		})
+		return
+	}
+
+	if err := validate.Struct(data); err != nil {
+		rp.h(Resp{
+			Msg:  err.Error(),
+			Code: 1004,
+			Data: "0",
+		})
+		return
+	}
+	update, err := redis.NewRM().Update(city, data.Id)
+	if err != nil {
+		rp.h(Resp{
+			Msg:  err.Error(),
+			Code: 1005,
+			Data: "0",
+		})
+		return
+	}
+
+	rp.h(Resp{
+		Msg:  err.Error(),
+		Code: 1005,
+		Data: update,
+	})
+
+}
+
+// handleAddBasketballSquare 将用户填入的地址添加到列表中
 func handleAddBasketballSquare(w http.ResponseWriter, r *http.Request) {
 	var rp = Resp{w: w}
 	if r.Method != http.MethodPost {
@@ -131,6 +339,53 @@ func handleAddBasketballSquare(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
+
+	b, err := io.ReadAll(r.Body)
+	if err != nil {
+		rp.h(Resp{
+			Msg:  err.Error(),
+			Code: 1002,
+			Data: "0",
+		})
+		return
+	}
+
+	defer r.Body.Close()
+
+	var data form.AddAddrForm
+
+	if err := json.Unmarshal(b, &data); err != nil {
+		rp.h(Resp{
+			Msg:  err.Error(),
+			Code: 1003,
+			Data: "0",
+		})
+		return
+	}
+
+	if err := validate.Struct(data); err != nil {
+		rp.h(Resp{
+			Msg:  err.Error(),
+			Code: 1004,
+			Data: "0",
+		})
+		return
+	}
+
+	if err := redis.NewRM().UserAddAddrReq(data); err != nil {
+		rp.h(Resp{
+			Msg:  err.Error(),
+			Code: 1004,
+			Data: "0",
+		})
+		return
+	}
+
+	rp.h(Resp{
+		Msg:  "ok",
+		Code: 1000,
+		Data: "0",
+	})
 
 }
 
