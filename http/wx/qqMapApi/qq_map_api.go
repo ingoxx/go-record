@@ -87,7 +87,7 @@ func (t TxMapApi) KeyWordSearch() ([]SaveInRedis, error) {
 				Lat:    v.Location.Lat,
 				Lng:    v.Location.Lng,
 				Title:  v.Title,
-				Tags:   []string{"篮球场"},
+				Tags:   []string{v.Title},
 				Img:    "https://mp-578c2584-f82c-45e7-9d53-51332c711501.cdn.bspapp.com/wx-fbs/bk3.svg",
 			}
 			sd = append(sd, sdd)

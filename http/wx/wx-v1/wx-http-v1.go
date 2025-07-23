@@ -6,10 +6,12 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/ingoxx/go-record/http/wx/form"
 	"github.com/ingoxx/go-record/http/wx/redis"
+	"github.com/mozillazg/go-pinyin"
 	"io"
 	"log"
 	"net/http"
 	"net/url"
+	"strings"
 	"sync"
 
 	"github.com/gorilla/websocket"
@@ -77,14 +79,14 @@ var (
 )
 
 func main() {
-	log.Println("version: v1.0.3")
+	log.Println("version: v1.1.0")
 
 	http.HandleFunc("/ws", handleConnections)
 	http.HandleFunc("/get-online", handleOnline)
 	http.HandleFunc("/user-add-square", handleAddBasketballSquare)
-	http.HandleFunc("/del-square", handleDelAddrCheck)
 	http.HandleFunc("/check-list", handleCheckAddAddrList)
-	http.HandleFunc("/add-square-pass", handlePassAddCheck)
+	http.HandleFunc("/add-square-refuse", handleAddAddrRefuse)
+	http.HandleFunc("/add-square-pass", handleAddAddrPass)
 	http.HandleFunc("/show-square", handleShowBasketballSquare)
 	http.HandleFunc("/wx-login", handleWxLogin)
 
@@ -188,8 +190,9 @@ func handleShowBasketballSquare(w http.ResponseWriter, r *http.Request) {
 
 	lng := r.FormValue("lng")
 	lat := r.FormValue("lat")
-	city := r.FormValue("city")
+	city := r.FormValue("city") // 拼音
 	cityCn := r.FormValue("cityCn")
+
 	if lng == "" || lat == "" || city == "" || cityCn == "" {
 		rp.h(Resp{
 			Msg:  "invalid parameter",
@@ -198,8 +201,8 @@ func handleShowBasketballSquare(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-
-	ol, err := redis.NewRM().GetAllData(city, cityCn)
+	cityPy := pinyin.LazyPinyin(cityCn, pinyin.NewArgs())
+	ol, err := redis.NewRM().GetAllData(strings.Join(cityPy, ""), cityCn)
 	if err != nil {
 		rp.h(Resp{
 			Msg:  err.Error(),
@@ -254,11 +257,68 @@ func handleCheckAddAddrList(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// handleDelAddrCheck 删除不符合要求的用户提交的添加地址请求
-func handleDelAddrCheck(w http.ResponseWriter, r *http.Request) {}
+// handleAddAddrRefuse 删除不符合要求的用户提交的添加地址请求
+func handleAddAddrRefuse(w http.ResponseWriter, r *http.Request) {
+	var rp = Resp{w: w}
+	if r.Method != http.MethodPost {
+		rp.h(Resp{
+			Msg:  "invalid request",
+			Code: 1001,
+			Data: "0",
+		})
+		return
+	}
 
-// handlePassAddCheck 审核通过用户提交的添加地址请求
-func handlePassAddCheck(w http.ResponseWriter, r *http.Request) {
+	b, err := io.ReadAll(r.Body)
+	if err != nil {
+		rp.h(Resp{
+			Msg:  err.Error(),
+			Code: 1002,
+			Data: "0",
+		})
+		return
+	}
+
+	defer r.Body.Close()
+
+	var data form.PassAddrReqForm
+
+	if err := json.Unmarshal(b, &data); err != nil {
+		rp.h(Resp{
+			Msg:  err.Error(),
+			Code: 1003,
+			Data: "0",
+		})
+		return
+	}
+	if err := validate.Struct(data); err != nil {
+		rp.h(Resp{
+			Msg:  err.Error(),
+			Code: 1004,
+			Data: "0",
+		})
+		return
+	}
+	nd, err := redis.NewRM().UpdateAddrList(data.Id)
+	if err != nil {
+		rp.h(Resp{
+			Msg:  err.Error(),
+			Code: 1005,
+			Data: "0",
+		})
+		return
+	}
+
+	rp.h(Resp{
+		Msg:  "ok",
+		Code: 1000,
+		Data: nd,
+	})
+
+}
+
+// handleAddAddrPass 审核通过用户提交的添加地址请求
+func handleAddAddrPass(w http.ResponseWriter, r *http.Request) {
 	var rp = Resp{w: w}
 	if r.Method != http.MethodPost {
 		rp.h(Resp{
@@ -272,12 +332,13 @@ func handlePassAddCheck(w http.ResponseWriter, r *http.Request) {
 	city := r.FormValue("city")
 	if city == "" {
 		rp.h(Resp{
-			Msg:  "invalid request",
+			Msg:  "invalid parameter",
 			Code: 1002,
 			Data: "0",
 		})
 		return
 	}
+	cityPy := pinyin.LazyPinyin(city, pinyin.NewArgs())
 
 	b, err := io.ReadAll(r.Body)
 	if err != nil {
@@ -310,8 +371,7 @@ func handlePassAddCheck(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	update, err := redis.NewRM().Update(city, data.Id)
-	if err != nil {
+	if _, err := redis.NewRM().Update(strings.Join(cityPy, ""), data.Id); err != nil {
 		rp.h(Resp{
 			Msg:  err.Error(),
 			Code: 1005,
@@ -320,10 +380,20 @@ func handlePassAddCheck(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	nd, err := redis.NewRM().UpdateAddrList(data.Id)
+	if err != nil {
+		rp.h(Resp{
+			Msg:  err.Error(),
+			Code: 1006,
+			Data: "0",
+		})
+		return
+	}
+
 	rp.h(Resp{
-		Msg:  err.Error(),
-		Code: 1005,
-		Data: update,
+		Msg:  "ok",
+		Code: 1000,
+		Data: nd,
 	})
 
 }

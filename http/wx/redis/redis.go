@@ -119,12 +119,11 @@ func (r *RM) Update(key, id string) ([]qqMapApi.SaveInRedis, error) {
 				Lat:    data.Lat,
 				Lng:    data.Lng,
 				UserId: data.UserId,
-				Title:  data.Addr,
+				Title:  "篮球场",
 			}
 			dataList = append(dataList, ad)
 			break
 		}
-
 	}
 
 	b, err := json.Marshal(dataList)
@@ -133,6 +132,10 @@ func (r *RM) Update(key, id string) ([]qqMapApi.SaveInRedis, error) {
 	}
 
 	if err := r.Set(key, b); err != nil {
+		return dataList, err
+	}
+
+	if _, err := r.UpdateAddrList(id); err != nil {
 		return dataList, err
 	}
 
@@ -189,4 +192,30 @@ func (r *RM) UserAddAddrReq(data form.AddAddrForm) error {
 	}
 
 	return nil
+}
+
+func (r *RM) UpdateAddrList(id string) ([]form.AddAddrForm, error) {
+	var nd = make([]form.AddAddrForm, 0, 10)
+
+	list, err := r.GetAddrList() // 遍历获取审核列表，找到对应id将其更新到指定key的数据中
+	if err != nil {
+		return nd, err
+	}
+
+	for _, v := range list {
+		if v.Id != id {
+			nd = append(nd, v)
+		}
+	}
+
+	b, err := json.Marshal(nd)
+	if err != nil {
+		return nd, err
+	}
+
+	if err := r.Set(AddrListKey, b); err != nil {
+		return nd, err
+	}
+
+	return nd, nil
 }
