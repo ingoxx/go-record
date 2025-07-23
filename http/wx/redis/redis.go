@@ -13,8 +13,9 @@ import (
 
 var (
 	rds         *redis.Client
-	keyPrefix   = "group-id"
+	groupKey    = "group-id"
 	AddrListKey = "addr-check-list"
+	//cusAddrKey   = "group-id-cus"
 )
 
 func init() {
@@ -48,7 +49,7 @@ func NewRM() *RM {
 }
 
 func (r *RM) formatKey(key string) string {
-	return fmt.Sprintf("%s-%s", keyPrefix, key)
+	return fmt.Sprintf("%s-%s", groupKey, key)
 }
 
 func (r *RM) Set(key string, b interface{}) error {
