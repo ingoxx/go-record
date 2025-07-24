@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/go-playground/validator/v10"
+	"github.com/importcjj/sensitive"
 	"github.com/ingoxx/go-record/http/wx/form"
 	"github.com/ingoxx/go-record/http/wx/redis"
 	"github.com/mozillazg/go-pinyin"
@@ -19,6 +20,7 @@ import (
 
 var (
 	validate = validator.New()
+	filter   = sensitive.New()
 )
 
 // Group 一个群聊包含多个客户端连接 + 消息历史
@@ -29,20 +31,19 @@ type Group struct {
 }
 
 type Message struct {
-	GroupID string `json:"group_id"`
-	UserID  string `json:"user_id"`
-	Content string `json:"content"`
-	Time    string `json:"time"`
-
+	GroupID   string `json:"group_id"`
+	UserID    string `json:"user_id"`
+	Content   string `json:"content"`
+	Time      string `json:"time"`
 	Type      string `json:"type"`       // normal / count
 	UserCount int    `json:"user_count"` // 当前群人数
 }
 
 type Resp struct {
+	w    http.ResponseWriter
+	Data interface{} `json:"data"`
 	Msg  string      `json:"msg"`
 	Code int         `json:"code"`
-	Data interface{} `json:"data"`
-	w    http.ResponseWriter
 }
 
 func (r Resp) message(rd Resp) ([]byte, error) {
@@ -79,7 +80,7 @@ var (
 )
 
 func main() {
-	log.Println("version: v1.1.0")
+	log.Println("version: v1.1.8")
 
 	http.HandleFunc("/ws", handleConnections)
 	http.HandleFunc("/get-online", handleOnline)
@@ -504,6 +505,11 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 		log.Println("WebSocket 升级失败:", err)
 		return
 	}
+
+	if err := filter.LoadWordDict("./dict.txt"); err != nil {
+		log.Fatalln("无法读取脏字库文件", err.Error())
+	}
+
 	defer ws.Close()
 
 	// 先读取第一条消息，拿到 groupID
@@ -552,6 +558,7 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 	// 先把历史消息发给新连接（可选）
 	group.Lock.Lock()
 	for _, oldMsg := range group.Messages {
+		oldMsg.Content = filter.Replace(oldMsg.Content, '*')
 		if err := ws.WriteJSON(oldMsg); err != nil {
 			log.Println("发送历史消息失败:", err)
 		}
@@ -584,6 +591,8 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 
+		log.Printf("用户: %s, msg: %s\n", msg.UserID, msg.Content)
+
 		// 普通消息
 		msg.Type = "normal"
 
@@ -600,6 +609,7 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 func handleBroadcast() {
 	for {
 		msg := <-broadcast
+		msg.Content = filter.Replace(msg.Content, '*')
 		groupID := msg.GroupID
 
 		groupsMu.Lock()

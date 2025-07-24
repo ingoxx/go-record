@@ -52,8 +52,9 @@ func (r *RM) formatKey(key string) string {
 	return fmt.Sprintf("%s-%s", groupKey, key)
 }
 
+// Set 保留两周, 两周后会更新地址
 func (r *RM) Set(key string, b interface{}) error {
-	return rds.Set(r.formatKey(key), b, 0).Err()
+	return rds.Set(r.formatKey(key), b, time.Second*time.Duration(1209600)).Err()
 }
 
 func (r *RM) Get(key string) (string, error) {
@@ -80,6 +81,13 @@ func (r *RM) GetAllData(key string, cnKey string) (string, error) {
 		if err != nil {
 			return result, err
 		}
+		ld, err := r.mergeData()
+		if err != nil {
+			return result, err
+		}
+		if len(ld) > 0 {
+			search = append(search, ld...)
+		}
 		b, err := json.Marshal(&search)
 		if err != nil {
 			return result, err
@@ -92,6 +100,31 @@ func (r *RM) GetAllData(key string, cnKey string) (string, error) {
 	}
 
 	return result, nil
+}
+
+func (r *RM) mergeData() ([]qqMapApi.SaveInRedis, error) {
+	var dataList = make([]qqMapApi.SaveInRedis, 0)
+	list, err := r.GetAddrList() // 遍历获取审核列表，找到对应id将其更新到指定key的数据中
+	if err != nil {
+		return dataList, err
+	}
+
+	dataList = make([]qqMapApi.SaveInRedis, 0, len(list))
+	for _, data := range list {
+		ad := qqMapApi.SaveInRedis{
+			Id:     data.Id,
+			Tags:   []string{"篮球场"},
+			Img:    "https://mp-578c2584-f82c-45e7-9d53-51332c711501.cdn.bspapp.com/wx-fbs/bk3.svg",
+			Addr:   data.Addr,
+			Lat:    data.Lat,
+			Lng:    data.Lng,
+			UserId: data.UserId,
+			Title:  "篮球场",
+		}
+		dataList = append(dataList, ad)
+	}
+
+	return dataList, nil
 }
 
 func (r *RM) Update(key, id string) ([]qqMapApi.SaveInRedis, error) {
@@ -111,7 +144,7 @@ func (r *RM) Update(key, id string) ([]qqMapApi.SaveInRedis, error) {
 	}
 
 	for _, data := range list {
-		if data.Id == id {
+		if data.Id == id && !data.IsRecord {
 			ad := qqMapApi.SaveInRedis{
 				Id:     data.Id,
 				Tags:   []string{"篮球场"},
@@ -144,15 +177,15 @@ func (r *RM) Update(key, id string) ([]qqMapApi.SaveInRedis, error) {
 }
 
 // GetAddrList 所有用户添加的篮球场地址列表
-func (r *RM) GetAddrList() ([]form.AddAddrForm, error) {
-	var dataList []form.AddAddrForm
+func (r *RM) GetAddrList() ([]*form.AddAddrForm, error) {
+	var dataList []*form.AddAddrForm
 	result, err := r.Get(AddrListKey)
 	if err != nil && !errors.Is(err, redis.Nil) {
 		return dataList, err
 	}
 
 	if errors.Is(err, redis.Nil) {
-		dataList = make([]form.AddAddrForm, 0)
+		dataList = make([]*form.AddAddrForm, 0)
 		b, err := json.Marshal(&dataList)
 		if err != nil {
 			return dataList, err
@@ -195,28 +228,27 @@ func (r *RM) UserAddAddrReq(data form.AddAddrForm) error {
 	return nil
 }
 
-func (r *RM) UpdateAddrList(id string) ([]form.AddAddrForm, error) {
-	var nd = make([]form.AddAddrForm, 0, 10)
-
+// UpdateAddrList 更新审核列表
+func (r *RM) UpdateAddrList(id string) ([]*form.AddAddrForm, error) {
 	list, err := r.GetAddrList() // 遍历获取审核列表，找到对应id将其更新到指定key的数据中
 	if err != nil {
-		return nd, err
+		return list, err
 	}
 
 	for _, v := range list {
-		if v.Id != id {
-			nd = append(nd, v)
+		if v.Id == id {
+			v.IsRecord = true
 		}
 	}
 
-	b, err := json.Marshal(nd)
+	b, err := json.Marshal(&list)
 	if err != nil {
-		return nd, err
+		return list, err
 	}
 
 	if err := r.Set(AddrListKey, b); err != nil {
-		return nd, err
+		return list, err
 	}
 
-	return nd, nil
+	return list, nil
 }
