@@ -80,7 +80,7 @@ var (
 )
 
 func main() {
-	log.Println("version: v1.1.8")
+	log.Println("version: v1.1.19")
 
 	http.HandleFunc("/ws", handleConnections)
 	http.HandleFunc("/get-online", handleOnline)
@@ -191,10 +191,9 @@ func handleShowBasketballSquare(w http.ResponseWriter, r *http.Request) {
 
 	lng := r.FormValue("lng")
 	lat := r.FormValue("lat")
-	city := r.FormValue("city") // 拼音
-	cityCn := r.FormValue("cityCn")
+	city := r.FormValue("city") // 中文
 
-	if lng == "" || lat == "" || city == "" || cityCn == "" {
+	if lng == "" || lat == "" || city == "" {
 		rp.h(Resp{
 			Msg:  "invalid parameter",
 			Code: 1002,
@@ -202,8 +201,9 @@ func handleShowBasketballSquare(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	cityPy := pinyin.LazyPinyin(cityCn, pinyin.NewArgs())
-	ol, err := redis.NewRM().GetAllData(strings.Join(cityPy, ""), cityCn)
+	cityPy := pinyin.LazyPinyin(city, pinyin.NewArgs())
+	log.Printf("中文： %s, 拼音： %s\n", city, cityPy)
+	ol, err := redis.NewRM().GetAllData(strings.Join(cityPy, ""), city)
 	if err != nil {
 		rp.h(Resp{
 			Msg:  err.Error(),
@@ -330,17 +330,6 @@ func handleAddAddrPass(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	city := r.FormValue("city")
-	if city == "" {
-		rp.h(Resp{
-			Msg:  "invalid parameter",
-			Code: 1002,
-			Data: "0",
-		})
-		return
-	}
-	cityPy := pinyin.LazyPinyin(city, pinyin.NewArgs())
-
 	b, err := io.ReadAll(r.Body)
 	if err != nil {
 		rp.h(Resp{
@@ -372,7 +361,8 @@ func handleAddAddrPass(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	if _, err := redis.NewRM().Update(strings.Join(cityPy, ""), data.Id); err != nil {
+
+	if _, err := redis.NewRM().Update(data.City, data.Id); err != nil {
 		rp.h(Resp{
 			Msg:  err.Error(),
 			Code: 1005,
@@ -443,10 +433,11 @@ func handleAddBasketballSquare(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	data.CityPy = strings.Join(pinyin.LazyPinyin(data.City, pinyin.NewArgs()), "")
 	if err := redis.NewRM().UserAddAddrReq(data); err != nil {
 		rp.h(Resp{
 			Msg:  err.Error(),
-			Code: 1004,
+			Code: 1005,
 			Data: "0",
 		})
 		return
@@ -541,9 +532,12 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 	group.Lock.Lock()
 	group.Clients[ws] = true
 	userCount := len(group.Clients)
-	if err := redis.NewRM().Set(groupID, userCount); err != nil {
-		log.Printf("[ERROR] 写入redis失败, 错误信息：%v", err)
+	if groupID == "" {
+		if err := redis.NewRM().Set(groupID, userCount, 0); err != nil {
+			log.Printf("[ERROR] 写入redis失败, 错误信息：%v", err)
+		}
 	}
+
 	group.Lock.Unlock()
 
 	log.Printf("用户 %s 加入群 %s，当前人数: %d", initMsg.UserID, groupID, userCount)
@@ -570,14 +564,15 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 		var msg Message
 		err := ws.ReadJSON(&msg)
 		if err != nil {
-			log.Printf("客户端 %s, 当前人数: %d,  断开: %v", initMsg.UserID, initMsg.UserCount, err)
-
 			// 从群里删除这个连接
 			group.Lock.Lock()
 			delete(group.Clients, ws)
 			userCount = len(group.Clients)
-			if err := redis.NewRM().Set(msg.GroupID, userCount); err != nil {
-				log.Printf("[ERROR] 写入redis失败, 错误信息：%v", err)
+			log.Printf("用户：%s, 组：%s, 当前人数: %d,  断开连接", initMsg.UserID, initMsg.GroupID, userCount)
+			if msg.GroupID != "" {
+				if err := redis.NewRM().Set(msg.GroupID, userCount, 0); err != nil {
+					log.Printf("[ERROR] 写入redis失败, 错误信息：%v", err)
+				}
 			}
 			group.Lock.Unlock()
 
@@ -591,7 +586,7 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 
-		log.Printf("用户: %s, msg: %s\n", msg.UserID, msg.Content)
+		log.Printf("用户: %s, 发送的内容: %s\n", msg.UserID, msg.Content)
 
 		// 普通消息
 		msg.Type = "normal"
@@ -614,8 +609,10 @@ func handleBroadcast() {
 
 		groupsMu.Lock()
 		group, ok := groups[groupID]
-		if err := redis.NewRM().Set(msg.GroupID, msg.UserCount); err != nil {
-			log.Println("[ERROR] fail to save user count.")
+		if msg.GroupID != "" {
+			if err := redis.NewRM().Set(msg.GroupID, msg.UserCount, 0); err != nil {
+				log.Println("[ERROR] fail to save user count.")
+			}
 		}
 		groupsMu.Unlock()
 		if !ok {

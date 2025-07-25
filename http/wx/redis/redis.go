@@ -8,6 +8,7 @@ import (
 	"github.com/ingoxx/go-record/http/wx/form"
 	"github.com/ingoxx/go-record/http/wx/qqMapApi"
 	"log"
+	"sync"
 	"time"
 )
 
@@ -42,6 +43,7 @@ func init() {
 }
 
 type RM struct {
+	mu sync.Mutex
 }
 
 func NewRM() *RM {
@@ -52,9 +54,8 @@ func (r *RM) formatKey(key string) string {
 	return fmt.Sprintf("%s-%s", groupKey, key)
 }
 
-// Set 保留两周, 两周后会更新地址
-func (r *RM) Set(key string, b interface{}) error {
-	return rds.Set(r.formatKey(key), b, time.Second*time.Duration(1209600)).Err()
+func (r *RM) Set(key string, b interface{}, expire time.Duration) error {
+	return rds.Set(r.formatKey(key), b, expire).Err()
 }
 
 func (r *RM) Get(key string) (string, error) {
@@ -70,7 +71,11 @@ func (r *RM) Get(key string) (string, error) {
 	return result, nil
 }
 
+// GetAllData 当前市的所有篮球场地址, 只保留两周, 两周后重新更新
 func (r *RM) GetAllData(key string, cnKey string) (string, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
 	result, err := r.Get(key)
 	if err != nil && !errors.Is(err, redis.Nil) {
 		return result, err
@@ -81,7 +86,7 @@ func (r *RM) GetAllData(key string, cnKey string) (string, error) {
 		if err != nil {
 			return result, err
 		}
-		ld, err := r.mergeData()
+		ld, err := r.mergeData(key)
 		if err != nil {
 			return result, err
 		}
@@ -92,7 +97,7 @@ func (r *RM) GetAllData(key string, cnKey string) (string, error) {
 		if err != nil {
 			return result, err
 		}
-		if err := r.Set(key, b); err != nil {
+		if err := r.Set(key, b, time.Second*time.Duration(1209600)); err != nil {
 			return result, err
 		}
 
@@ -102,7 +107,7 @@ func (r *RM) GetAllData(key string, cnKey string) (string, error) {
 	return result, nil
 }
 
-func (r *RM) mergeData() ([]qqMapApi.SaveInRedis, error) {
+func (r *RM) mergeData(key string) ([]qqMapApi.SaveInRedis, error) {
 	var dataList = make([]qqMapApi.SaveInRedis, 0)
 	list, err := r.GetAddrList() // 遍历获取审核列表，找到对应id将其更新到指定key的数据中
 	if err != nil {
@@ -111,17 +116,19 @@ func (r *RM) mergeData() ([]qqMapApi.SaveInRedis, error) {
 
 	dataList = make([]qqMapApi.SaveInRedis, 0, len(list))
 	for _, data := range list {
-		ad := qqMapApi.SaveInRedis{
-			Id:     data.Id,
-			Tags:   []string{"篮球场"},
-			Img:    "https://mp-578c2584-f82c-45e7-9d53-51332c711501.cdn.bspapp.com/wx-fbs/bk3.svg",
-			Addr:   data.Addr,
-			Lat:    data.Lat,
-			Lng:    data.Lng,
-			UserId: data.UserId,
-			Title:  "篮球场",
+		if data.CityPy == key {
+			ad := qqMapApi.SaveInRedis{
+				Id:     data.Id,
+				Tags:   []string{"篮球场"},
+				Img:    "https://mp-578c2584-f82c-45e7-9d53-51332c711501.cdn.bspapp.com/wx-fbs/bk3.svg",
+				Addr:   data.Addr,
+				Lat:    data.Lat,
+				Lng:    data.Lng,
+				UserId: data.UserId,
+				Title:  "篮球场",
+			}
+			dataList = append(dataList, ad)
 		}
-		dataList = append(dataList, ad)
 	}
 
 	return dataList, nil
@@ -144,7 +151,7 @@ func (r *RM) Update(key, id string) ([]qqMapApi.SaveInRedis, error) {
 	}
 
 	for _, data := range list {
-		if data.Id == id && !data.IsRecord {
+		if data.Id == id && !data.IsRecord && data.CityPy == key {
 			ad := qqMapApi.SaveInRedis{
 				Id:     data.Id,
 				Tags:   []string{"篮球场"},
@@ -165,7 +172,7 @@ func (r *RM) Update(key, id string) ([]qqMapApi.SaveInRedis, error) {
 		return dataList, err
 	}
 
-	if err := r.Set(key, b); err != nil {
+	if err := r.Set(key, b, time.Second*time.Duration(1209600)); err != nil {
 		return dataList, err
 	}
 
@@ -176,7 +183,7 @@ func (r *RM) Update(key, id string) ([]qqMapApi.SaveInRedis, error) {
 	return dataList, nil
 }
 
-// GetAddrList 所有用户添加的篮球场地址列表
+// GetAddrList 所有用户添加的篮球场地址列表，不过期长期保存用户添加的篮球场地址
 func (r *RM) GetAddrList() ([]*form.AddAddrForm, error) {
 	var dataList []*form.AddAddrForm
 	result, err := r.Get(AddrListKey)
@@ -190,7 +197,7 @@ func (r *RM) GetAddrList() ([]*form.AddAddrForm, error) {
 		if err != nil {
 			return dataList, err
 		}
-		if err := r.Set(AddrListKey, b); err != nil {
+		if err := r.Set(AddrListKey, b, 0); err != nil {
 			return dataList, err
 		}
 		return dataList, nil
@@ -205,14 +212,16 @@ func (r *RM) GetAddrList() ([]*form.AddAddrForm, error) {
 
 // UserAddAddrReq 用户提交添加篮球场地址的请求
 func (r *RM) UserAddAddrReq(data form.AddAddrForm) error {
-	var dataList []form.AddAddrForm
+	var dataList = make([]form.AddAddrForm, 0)
 	result, err := r.Get(AddrListKey)
 	if err != nil && !errors.Is(err, redis.Nil) {
 		return err
 	}
 
-	if err := json.Unmarshal([]byte(result), &dataList); err != nil {
-		return err
+	if result != "" {
+		if err := json.Unmarshal([]byte(result), &dataList); err != nil {
+			return err
+		}
 	}
 
 	dataList = append(dataList, data)
@@ -221,7 +230,7 @@ func (r *RM) UserAddAddrReq(data form.AddAddrForm) error {
 		return err
 	}
 
-	if err := r.Set(AddrListKey, b); err != nil {
+	if err := r.Set(AddrListKey, b, 0); err != nil {
 		return err
 	}
 
@@ -246,7 +255,7 @@ func (r *RM) UpdateAddrList(id string) ([]*form.AddAddrForm, error) {
 		return list, err
 	}
 
-	if err := r.Set(AddrListKey, b); err != nil {
+	if err := r.Set(AddrListKey, b, 0); err != nil {
 		return list, err
 	}
 

@@ -3,6 +3,7 @@ package qqMapApi
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/google/uuid"
 	"io"
 	"net/http"
 	"time"
@@ -63,6 +64,7 @@ func (t TxMapApi) KeyWordSearch() ([]SaveInRedis, error) {
 	var fd APIResponse
 	var sd = make([]SaveInRedis, 0, 100)
 	offset := 1
+
 	for offset <= 5 {
 		url := fmt.Sprintf("https://apis.map.qq.com/ws/place/v1/suggestion?region=%s&keyword=篮球场&key=YSRBZ-GSVY3-3P23L-RNWCE-OQB3V-T6BXG&page_size=20&page_index=%d", t.City, offset)
 		resp, err := http.Get(url)
@@ -80,8 +82,9 @@ func (t TxMapApi) KeyWordSearch() ([]SaveInRedis, error) {
 		}
 
 		for _, v := range fd.Data {
+			u4 := uuid.New()
 			sdd := SaveInRedis{
-				Id:     v.ID,
+				Id:     u4.String(),
 				UserId: "ogR3E62jXXJMbVcImRqMA1gTSegM",
 				Addr:   v.Address,
 				Lat:    v.Location.Lat,
