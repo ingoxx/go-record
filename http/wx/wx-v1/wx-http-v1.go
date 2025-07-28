@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/go-playground/validator/v10"
 	"github.com/importcjj/sensitive"
 	"github.com/ingoxx/go-record/http/wx/form"
@@ -80,7 +79,7 @@ var (
 )
 
 func main() {
-	log.Println("version: v1.1.19")
+	log.Println("version: v1.1.31")
 
 	http.HandleFunc("/ws", handleConnections)
 	http.HandleFunc("/get-online", handleOnline)
@@ -100,7 +99,7 @@ func main() {
 
 func handleWxLogin(w http.ResponseWriter, r *http.Request) {
 	var rp = Resp{w: w}
-	if r.Method != "POST" {
+	if r.Method != http.MethodPost {
 		rp.h(Resp{
 			Msg:  "invalid request",
 			Code: 1001,
@@ -112,8 +111,8 @@ func handleWxLogin(w http.ResponseWriter, r *http.Request) {
 	bd, err := io.ReadAll(r.Body)
 	if err != nil {
 		rp.h(Resp{
-			Msg:  "invalid request",
-			Code: 1003,
+			Msg:  err.Error(),
+			Code: 1002,
 			Data: "0",
 		})
 		return
@@ -121,7 +120,7 @@ func handleWxLogin(w http.ResponseWriter, r *http.Request) {
 	if err = json.Unmarshal(bd, &codeData); err != nil {
 		rp.h(Resp{
 			Msg:  err.Error(),
-			Code: 1004,
+			Code: 1003,
 			Data: "0",
 		})
 		return
@@ -138,7 +137,7 @@ func handleWxLogin(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		rp.h(Resp{
 			Msg:  err.Error(),
-			Code: 1005,
+			Code: 1004,
 			Data: "0",
 		})
 		return
@@ -150,7 +149,7 @@ func handleWxLogin(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		rp.h(Resp{
 			Msg:  err.Error(),
-			Code: 1006,
+			Code: 1005,
 			Data: "0",
 		})
 		return
@@ -164,6 +163,15 @@ func handleWxLogin(w http.ResponseWriter, r *http.Request) {
 		rp.h(Resp{
 			Msg:  err.Error(),
 			Code: 1006,
+			Data: "0",
+		})
+		return
+	}
+
+	if err := redis.NewRM().SetWxOpenid(wxOpenid.Openid); err != nil {
+		rp.h(Resp{
+			Msg:  err.Error(),
+			Code: 1007,
 			Data: "0",
 		})
 		return
@@ -191,9 +199,11 @@ func handleShowBasketballSquare(w http.ResponseWriter, r *http.Request) {
 
 	lng := r.FormValue("lng")
 	lat := r.FormValue("lat")
-	city := r.FormValue("city") // 中文
+	city := r.FormValue("city")
+	uid := r.FormValue("uid")
+	// 中文
 
-	if lng == "" || lat == "" || city == "" {
+	if lng == "" || lat == "" || city == "" || uid == "" {
 		rp.h(Resp{
 			Msg:  "invalid parameter",
 			Code: 1002,
@@ -201,13 +211,23 @@ func handleShowBasketballSquare(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
+
+	if err := redis.NewRM().GetWxOpenid(uid); err != nil {
+		rp.h(Resp{
+			Msg:  err.Error(),
+			Code: 1003,
+			Data: "0",
+		})
+		return
+	}
+
 	cityPy := pinyin.LazyPinyin(city, pinyin.NewArgs())
 	log.Printf("中文： %s, 拼音： %s\n", city, cityPy)
 	ol, err := redis.NewRM().GetAllData(strings.Join(cityPy, ""), city)
 	if err != nil {
 		rp.h(Resp{
 			Msg:  err.Error(),
-			Code: 1003,
+			Code: 1004,
 			Data: ol,
 		})
 		return
@@ -270,11 +290,21 @@ func handleAddAddrRefuse(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	uid := r.FormValue("uid")
+	if uid != "ogR3E62jXXJMbVcImRqMA1gTSegM" {
+		rp.h(Resp{
+			Msg:  "invalid parameter",
+			Code: 1002,
+			Data: "0",
+		})
+		return
+	}
+
 	b, err := io.ReadAll(r.Body)
 	if err != nil {
 		rp.h(Resp{
 			Msg:  err.Error(),
-			Code: 1002,
+			Code: 1004,
 			Data: "0",
 		})
 		return
@@ -287,7 +317,7 @@ func handleAddAddrRefuse(w http.ResponseWriter, r *http.Request) {
 	if err := json.Unmarshal(b, &data); err != nil {
 		rp.h(Resp{
 			Msg:  err.Error(),
-			Code: 1003,
+			Code: 1005,
 			Data: "0",
 		})
 		return
@@ -295,7 +325,7 @@ func handleAddAddrRefuse(w http.ResponseWriter, r *http.Request) {
 	if err := validate.Struct(data); err != nil {
 		rp.h(Resp{
 			Msg:  err.Error(),
-			Code: 1004,
+			Code: 1006,
 			Data: "0",
 		})
 		return
@@ -304,7 +334,7 @@ func handleAddAddrRefuse(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		rp.h(Resp{
 			Msg:  err.Error(),
-			Code: 1005,
+			Code: 1007,
 			Data: "0",
 		})
 		return
@@ -330,11 +360,21 @@ func handleAddAddrPass(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	uid := r.FormValue("uid")
+	if uid != "ogR3E62jXXJMbVcImRqMA1gTSegM" {
+		rp.h(Resp{
+			Msg:  "invalid parameter",
+			Code: 1002,
+			Data: "0",
+		})
+		return
+	}
+
 	b, err := io.ReadAll(r.Body)
 	if err != nil {
 		rp.h(Resp{
 			Msg:  err.Error(),
-			Code: 1002,
+			Code: 1003,
 			Data: "0",
 		})
 		return
@@ -347,7 +387,7 @@ func handleAddAddrPass(w http.ResponseWriter, r *http.Request) {
 	if err := json.Unmarshal(b, &data); err != nil {
 		rp.h(Resp{
 			Msg:  err.Error(),
-			Code: 1003,
+			Code: 1004,
 			Data: "0",
 		})
 		return
@@ -356,7 +396,7 @@ func handleAddAddrPass(w http.ResponseWriter, r *http.Request) {
 	if err := validate.Struct(data); err != nil {
 		rp.h(Resp{
 			Msg:  err.Error(),
-			Code: 1004,
+			Code: 1005,
 			Data: "0",
 		})
 		return
@@ -365,7 +405,7 @@ func handleAddAddrPass(w http.ResponseWriter, r *http.Request) {
 	if _, err := redis.NewRM().Update(data.City, data.Id); err != nil {
 		rp.h(Resp{
 			Msg:  err.Error(),
-			Code: 1005,
+			Code: 1006,
 			Data: "0",
 		})
 		return
@@ -375,7 +415,7 @@ func handleAddAddrPass(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		rp.h(Resp{
 			Msg:  err.Error(),
-			Code: 1006,
+			Code: 1007,
 			Data: "0",
 		})
 		return
@@ -401,11 +441,30 @@ func handleAddBasketballSquare(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	uid := r.FormValue("uid")
+	if uid == "" {
+		rp.h(Resp{
+			Msg:  "invalid parameter",
+			Code: 1002,
+			Data: "0",
+		})
+		return
+	}
+
+	if err := redis.NewRM().GetWxOpenid(uid); err != nil {
+		rp.h(Resp{
+			Msg:  err.Error(),
+			Code: 1003,
+			Data: "0",
+		})
+		return
+	}
+
 	b, err := io.ReadAll(r.Body)
 	if err != nil {
 		rp.h(Resp{
 			Msg:  err.Error(),
-			Code: 1002,
+			Code: 1004,
 			Data: "0",
 		})
 		return
@@ -418,7 +477,7 @@ func handleAddBasketballSquare(w http.ResponseWriter, r *http.Request) {
 	if err := json.Unmarshal(b, &data); err != nil {
 		rp.h(Resp{
 			Msg:  err.Error(),
-			Code: 1003,
+			Code: 1005,
 			Data: "0",
 		})
 		return
@@ -427,7 +486,7 @@ func handleAddBasketballSquare(w http.ResponseWriter, r *http.Request) {
 	if err := validate.Struct(data); err != nil {
 		rp.h(Resp{
 			Msg:  err.Error(),
-			Code: 1004,
+			Code: 1006,
 			Data: "0",
 		})
 		return
@@ -437,7 +496,7 @@ func handleAddBasketballSquare(w http.ResponseWriter, r *http.Request) {
 	if err := redis.NewRM().UserAddAddrReq(data); err != nil {
 		rp.h(Resp{
 			Msg:  err.Error(),
-			Code: 1005,
+			Code: 1007,
 			Data: "0",
 		})
 		return
@@ -451,6 +510,7 @@ func handleAddBasketballSquare(w http.ResponseWriter, r *http.Request) {
 
 }
 
+// handleOnline 群组的在线人数
 func handleOnline(w http.ResponseWriter, r *http.Request) {
 	var rp = Resp{w: w}
 	if r.Method != http.MethodGet {
@@ -463,7 +523,8 @@ func handleOnline(w http.ResponseWriter, r *http.Request) {
 	}
 
 	gid := r.FormValue("gid")
-	if gid == "" {
+	uid := r.FormValue("uid")
+	if gid == "" || uid == "" {
 		rp.h(Resp{
 			Msg:  "invalid parameter",
 			Code: 1002,
@@ -472,11 +533,20 @@ func handleOnline(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ol, err := redis.NewRM().Get(gid)
+	if err := redis.NewRM().GetWxOpenid(uid); err != nil {
+		rp.h(Resp{
+			Msg:  err.Error(),
+			Code: 1003,
+			Data: "0",
+		})
+		return
+	}
+
+	ol, err := redis.NewRM().GetGroupOnline(gid)
 	if err != nil {
 		rp.h(Resp{
-			Msg:  fmt.Sprintf("'%s' not found", gid),
-			Code: 1003,
+			Msg:  err.Error(),
+			Code: 1004,
 			Data: "0",
 		})
 		return
@@ -491,6 +561,16 @@ func handleOnline(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleConnections(w http.ResponseWriter, r *http.Request) {
+	uid := r.FormValue("uid")
+	if uid == "" {
+		http.Error(w, "Forbidden: Invalid UID", http.StatusForbidden)
+		return
+	}
+	if err := redis.NewRM().GetWxOpenid(uid); err != nil {
+		http.Error(w, "Forbidden: Invalid UID", http.StatusForbidden)
+		return
+	}
+
 	ws, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Println("WebSocket 升级失败:", err)

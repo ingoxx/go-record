@@ -16,6 +16,7 @@ var (
 	rds         *redis.Client
 	groupKey    = "group-id"
 	AddrListKey = "addr-check-list"
+	WxOPenIdKey = "wx_open_id_list"
 	//cusAddrKey   = "group-id-cus"
 )
 
@@ -260,4 +261,117 @@ func (r *RM) UpdateAddrList(id string) ([]*form.AddAddrForm, error) {
 	}
 
 	return list, nil
+}
+
+// SetWxOpenid 保存微信用户的openid
+func (r *RM) SetWxOpenid(id string) error {
+	var data = make([]form.WxOpenidList, 0)
+	result, err := r.Get(WxOPenIdKey)
+	if err != nil && !errors.Is(err, redis.Nil) {
+		return err
+	}
+	if result == "" {
+		d := form.WxOpenidList{
+			Openid: id,
+		}
+		data = append(data, d)
+		b, err := json.Marshal(&data)
+		if err != nil {
+			return err
+		}
+
+		if err := r.Set(WxOPenIdKey, b, 0); err != nil {
+			return err
+		}
+
+		return nil
+	}
+
+	if err := json.Unmarshal([]byte(result), &data); err != nil {
+		return err
+	}
+
+	var isExist bool
+	for _, v := range data {
+		if v.Openid == id {
+			isExist = true
+		}
+	}
+
+	if !isExist {
+		d := form.WxOpenidList{
+			Openid: id,
+		}
+		data = append(data, d)
+
+		b, err := json.Marshal(&data)
+		if err != nil {
+			return err
+		}
+
+		if err := r.Set(WxOPenIdKey, b, 0); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// GetWxOpenid 微信用户的openid
+func (r *RM) GetWxOpenid(id string) error {
+	var data = make([]form.WxOpenidList, 0)
+	result, err := r.Get(WxOPenIdKey)
+	if err != nil && !errors.Is(err, redis.Nil) {
+		return err
+	}
+
+	if result == "" {
+		b, err := json.Marshal(&data)
+		if err != nil {
+			return err
+		}
+
+		if err := r.Set(WxOPenIdKey, b, 0); err != nil {
+			return err
+		}
+
+		return errors.New("请先登陆微信")
+	}
+
+	if err := json.Unmarshal([]byte(result), &data); err != nil {
+		return err
+	}
+
+	var isFind bool
+	for _, v := range data {
+		if v.Openid == id {
+			isFind = true
+			break
+		}
+	}
+
+	if !isFind {
+		return errors.New("请先登陆微信")
+	}
+
+	return nil
+}
+
+// GetGroupOnline 获取在线人数
+func (r *RM) GetGroupOnline(key string) (string, error) {
+	result, err := rds.Get(key).Result()
+	if err != nil && !errors.Is(err, redis.Nil) {
+		return result, err
+	}
+
+	if result == "" {
+		if err := r.Set(key, 0, time.Second*time.Duration(7200)); err != nil {
+			return result, err
+		}
+
+		return "0", nil
+
+	}
+
+	return result, nil
 }

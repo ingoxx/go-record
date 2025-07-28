@@ -15,3 +15,7 @@ type PassAddrReqForm struct {
 	Id   string `json:"id" validate:"required"`
 	City string `json:"city"  validate:"required"`
 }
+
+type WxOpenidList struct {
+	Openid string `json:"openid"`
+}
