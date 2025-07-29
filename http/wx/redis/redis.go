@@ -359,7 +359,7 @@ func (r *RM) GetWxOpenid(id string) error {
 
 // GetGroupOnline 获取在线人数
 func (r *RM) GetGroupOnline(key string) (string, error) {
-	result, err := rds.Get(key).Result()
+	result, err := r.Get(key)
 	if err != nil && !errors.Is(err, redis.Nil) {
 		return result, err
 	}
