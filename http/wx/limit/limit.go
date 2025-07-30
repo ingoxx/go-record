@@ -9,7 +9,7 @@ import (
 
 func main() {
 	// 假设这是用户注册时输入的密码或需要哈希的字符串
-	originalStr := "user_1123sad"
+	originalStr := "user_1123sadd"
 
 	// 1. 生成哈希值
 	// 第二个参数是 cost，值越高，哈希计算越慢，但也越安全。
@@ -27,7 +27,7 @@ func main() {
 
 	// 2. 验证哈希值 (模拟用户登录)
 	// 假设这是用户登录时输入的字符串
-	loginAttemptStr := "user_1123sad"
+	loginAttemptStr := "user_1123sadd"
 
 	// 使用 CompareHashAndPassword 来比较原始字符串和哈希值
 	err = bcrypt.CompareHashAndPassword([]byte(hashedStr), []byte(loginAttemptStr))

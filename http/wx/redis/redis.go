@@ -7,6 +7,7 @@ import (
 	"github.com/go-redis/redis"
 	"github.com/ingoxx/go-record/http/wx/form"
 	"github.com/ingoxx/go-record/http/wx/qqMapApi"
+	"golang.org/x/crypto/bcrypt"
 	"log"
 	"sync"
 	"time"
@@ -23,7 +24,7 @@ var (
 func init() {
 	rds = redis.NewClient(
 		&redis.Options{
-			Addr:         "193.112.111.237:6378",
+			Addr:         "127.0.0.1:6378",
 			DB:           1,
 			MinIdleConns: 5,
 			Password:     "chatai",
@@ -374,4 +375,34 @@ func (r *RM) GetGroupOnline(key string) (string, error) {
 	}
 
 	return result, nil
+}
+
+// VerifyWxUser 验证微信用户openid
+func (r *RM) VerifyWxUser(hash string) (string, error) {
+	var data = make([]form.WxOpenidList, 0)
+	result, err := r.Get(WxOPenIdKey)
+	if err != nil && !errors.Is(err, redis.Nil) {
+		return result, err
+	}
+
+	if result == "" {
+		return result, errors.New("用户不存在")
+	}
+
+	if err := json.Unmarshal([]byte(result), &data); err != nil {
+		return result, err
+	}
+	var oid string
+	for _, v := range data {
+		if err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(v.Openid)); err == nil {
+			oid = v.Openid
+			break
+		}
+	}
+
+	if oid == "" {
+		return result, errors.New("用户不存在")
+	}
+
+	return oid, nil
 }

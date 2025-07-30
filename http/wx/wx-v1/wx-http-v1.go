@@ -1,7 +1,12 @@
 package main
 
 import (
+	"crypto/aes"
+	"crypto/cipher"
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"github.com/go-playground/validator/v10"
 	"github.com/importcjj/sensitive"
 	"github.com/ingoxx/go-record/http/wx/form"
@@ -19,8 +24,16 @@ import (
 )
 
 var (
-	validate = validator.New()
-	filter   = sensitive.New()
+	validate      = validator.New()
+	filter        = sensitive.New()
+	getLastNChars = func(s string, n int) string {
+		// 安全检查：如果字符串长度不足n，则返回整个字符串
+		if len(s) <= n {
+			return s
+		}
+		// 否则，安全地截取
+		return s[len(s)-n:]
+	}
 )
 
 // Group 一个群聊包含多个客户端连接 + 消息历史
@@ -80,7 +93,7 @@ var (
 )
 
 func main() {
-	log.Println("version: v1.1.40")
+	log.Println("version: v1.1.42")
 
 	http.HandleFunc("/ws", handleConnections)
 	http.HandleFunc("/get-online", handleOnline)
@@ -596,6 +609,7 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 		log.Println("解析初始化消息失败:", err)
 		return
 	}
+
 	groupID := initMsg.GroupID
 
 	// 把连接放入对应群
@@ -632,6 +646,11 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 	// 先把历史消息发给新连接（可选）
 	group.Lock.Lock()
 	for _, oldMsg := range group.Messages {
+		//UserIDBytes, err := bcrypt.GenerateFromPassword([]byte(oldMsg.UserID), bcrypt.DefaultCost)
+		//if err != nil {
+		//	oldMsg.UserID = "user_unknown"
+		//}
+		//oldMsg.UserID = fmt.Sprintf("user_%s", getLastNChars(string(UserIDBytes), 10))
 		oldMsg.Content = filter.Replace(oldMsg.Content, '*')
 		if err := ws.WriteJSON(oldMsg); err != nil {
 			log.Println("发送历史消息失败:", err)
@@ -701,8 +720,12 @@ func handleBroadcast() {
 
 		group.Lock.Lock()
 		for client := range group.Clients {
-			err := client.WriteJSON(msg)
-			if err != nil {
+			//UserIDBytes, err := bcrypt.GenerateFromPassword([]byte(msg.UserID), bcrypt.DefaultCost)
+			//if err != nil {
+			//	msg.UserID = "user_unknown"
+			//}
+			//msg.UserID = fmt.Sprintf("user_%s", getLastNChars(string(UserIDBytes), 10))
+			if err := client.WriteJSON(msg); err != nil {
 				log.Println("广播失败，删除连接:", err)
 				client.Close()
 				delete(group.Clients, client)
@@ -710,4 +733,48 @@ func handleBroadcast() {
 		}
 		group.Lock.Unlock()
 	}
+}
+
+// Encrypt 使用 AES-GCM 加密字符串
+func Encrypt(plaintext string, key []byte) (string, error) {
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return "", err
+	}
+	gcm, err := cipher.NewGCM(block)
+	if err != nil {
+		return "", err
+	}
+	nonce := make([]byte, gcm.NonceSize())
+	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
+		return "", err
+	}
+	ciphertext := gcm.Seal(nonce, nonce, []byte(plaintext), nil)
+	return hex.EncodeToString(ciphertext), nil
+}
+
+// Decrypt 使用 AES-GCM 解密字符串
+func Decrypt(ciphertextHex string, key []byte) (string, error) {
+	ciphertext, err := hex.DecodeString(ciphertextHex)
+	if err != nil {
+		return "", err
+	}
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return "", err
+	}
+	gcm, err := cipher.NewGCM(block)
+	if err != nil {
+		return "", err
+	}
+	nonceSize := gcm.NonceSize()
+	if len(ciphertext) < nonceSize {
+		return "", fmt.Errorf("密文太短")
+	}
+	nonce, actualCiphertext := ciphertext[:nonceSize], ciphertext[nonceSize:]
+	plaintext, err := gcm.Open(nil, nonce, actualCiphertext, nil)
+	if err != nil {
+		return "", err
+	}
+	return string(plaintext), nil
 }

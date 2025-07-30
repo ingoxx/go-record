@@ -97,7 +97,7 @@ func (t TxMapApi) KeyWordSearch() ([]SaveInRedis, error) {
 		}
 
 		offset++
-		time.Sleep(time.Second * time.Duration(4))
+		time.Sleep(time.Second)
 	}
 
 	return sd, nil
