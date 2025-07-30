@@ -80,7 +80,7 @@ var (
 )
 
 func main() {
-	log.Println("version: v1.1.37")
+	log.Println("version: v1.1.40")
 
 	http.HandleFunc("/ws", handleConnections)
 	http.HandleFunc("/get-online", handleOnline)
@@ -613,11 +613,11 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 	group.Lock.Lock()
 	group.Clients[ws] = true
 	userCount := len(group.Clients)
-
-	if err := redis.NewRM().Set(groupID, userCount, time.Second*time.Duration(7200)); err != nil {
-		log.Printf("[ERROR] 写入redis失败, 错误信息：%v", err)
+	if groupID != "" {
+		if err := redis.NewRM().Set(groupID, userCount, time.Second*time.Duration(7200)); err != nil {
+			log.Printf("[ERROR] 写入redis失败, 错误信息：%v", err)
+		}
 	}
-
 	group.Lock.Unlock()
 
 	log.Printf("用户 %s 加入群 %s，当前人数: %d", initMsg.UserID, groupID, userCount)
@@ -649,11 +649,11 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 			delete(group.Clients, ws)
 			userCount = len(group.Clients)
 			log.Printf("用户：%s, 组：%s, 当前人数: %d,  断开连接", initMsg.UserID, initMsg.GroupID, userCount)
-
-			if err := redis.NewRM().Set(msg.GroupID, userCount, time.Second*time.Duration(7200)); err != nil {
-				log.Printf("[ERROR] 写入redis失败, 错误信息：%v", err)
+			if msg.GroupID != "" {
+				if err := redis.NewRM().Set(msg.GroupID, userCount, time.Second*time.Duration(7200)); err != nil {
+					log.Printf("[ERROR] 写入redis失败, 错误信息：%v", err)
+				}
 			}
-
 			group.Lock.Unlock()
 
 			// 广播新的群人数
@@ -689,11 +689,11 @@ func handleBroadcast() {
 
 		groupsMu.Lock()
 		group, ok := groups[groupID]
-
-		if err := redis.NewRM().Set(msg.GroupID, msg.UserCount, time.Second*time.Duration(7200)); err != nil {
-			log.Println("[ERROR] fail to save user count.")
+		if msg.GroupID != "" {
+			if err := redis.NewRM().Set(msg.GroupID, msg.UserCount, time.Second*time.Duration(7200)); err != nil {
+				log.Println("[ERROR] fail to save user count.")
+			}
 		}
-
 		groupsMu.Unlock()
 		if !ok {
 			continue
