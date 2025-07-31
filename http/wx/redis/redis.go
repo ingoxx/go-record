@@ -15,9 +15,10 @@ import (
 
 var (
 	rds         *redis.Client
-	groupKey    = "group-id"
-	AddrListKey = "addr-check-list"
+	groupKey    = "group_id"
+	AddrListKey = "addr_check_list"
 	WxOPenIdKey = "wx_open_id_list"
+	defaultImg  = "https://mp-578c2584-f82c-45e7-9d53-51332c711501.cdn.bspapp.com/wx-fbs/bk3.svg"
 	//cusAddrKey   = "group-id-cus"
 )
 
@@ -74,7 +75,8 @@ func (r *RM) Get(key string) (string, error) {
 }
 
 // GetAllData 当前市的所有篮球场地址, 只保留两周, 两周后重新更新
-func (r *RM) GetAllData(key string, cnKey string) (string, error) {
+func (r *RM) GetAllData(key, cnKey, keyWord string) (string, error) {
+	// 最终的key：shenzhenshi_bks
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -84,7 +86,7 @@ func (r *RM) GetAllData(key string, cnKey string) (string, error) {
 	}
 
 	if result == "" {
-		search, err := qqMapApi.NewTxMapApi(cnKey).KeyWordSearch()
+		search, err := qqMapApi.NewTxMapApi(cnKey, keyWord).KeyWordSearch()
 		if err != nil {
 			return result, err
 		}
@@ -118,16 +120,16 @@ func (r *RM) mergeData(key string) ([]qqMapApi.SaveInRedis, error) {
 
 	dataList = make([]qqMapApi.SaveInRedis, 0, len(list))
 	for _, data := range list {
-		if data.CityPy == key {
+		if data.SportKey == key {
 			ad := qqMapApi.SaveInRedis{
 				Id:     data.Id,
-				Tags:   []string{"篮球场"},
-				Img:    "https://mp-578c2584-f82c-45e7-9d53-51332c711501.cdn.bspapp.com/wx-fbs/bk3.svg",
+				Tags:   []string{data.Tags},
+				Img:    defaultImg,
 				Addr:   data.Addr,
 				Lat:    data.Lat,
 				Lng:    data.Lng,
 				UserId: data.UserId,
-				Title:  "篮球场",
+				Title:  data.Tags,
 			}
 			dataList = append(dataList, ad)
 		}
@@ -186,15 +188,15 @@ func (r *RM) Update(key, id string) ([]qqMapApi.SaveInRedis, error) {
 }
 
 // GetAddrList 所有用户添加的篮球场地址列表，不过期长期保存用户添加的篮球场地址
-func (r *RM) GetAddrList() ([]*form.AddAddrForm, error) {
-	var dataList []*form.AddAddrForm
+func (r *RM) GetAddrList() ([]*form.AddrListForm, error) {
+	var dataList []*form.AddrListForm
 	result, err := r.Get(AddrListKey)
 	if err != nil && !errors.Is(err, redis.Nil) {
 		return dataList, err
 	}
 
 	if errors.Is(err, redis.Nil) {
-		dataList = make([]*form.AddAddrForm, 0)
+		dataList = make([]*form.AddrListForm, 0)
 		b, err := json.Marshal(&dataList)
 		if err != nil {
 			return dataList, err
@@ -213,8 +215,8 @@ func (r *RM) GetAddrList() ([]*form.AddAddrForm, error) {
 }
 
 // UserAddAddrReq 用户提交添加篮球场地址的请求
-func (r *RM) UserAddAddrReq(data form.AddAddrForm) error {
-	var dataList = make([]form.AddAddrForm, 0)
+func (r *RM) UserAddAddrReq(data form.AddrListForm) error {
+	var dataList = make([]form.AddrListForm, 0)
 	result, err := r.Get(AddrListKey)
 	if err != nil && !errors.Is(err, redis.Nil) {
 		return err
@@ -240,7 +242,7 @@ func (r *RM) UserAddAddrReq(data form.AddAddrForm) error {
 }
 
 // UpdateAddrList 更新审核列表
-func (r *RM) UpdateAddrList(id string) ([]*form.AddAddrForm, error) {
+func (r *RM) UpdateAddrList(id string) ([]*form.AddrListForm, error) {
 	list, err := r.GetAddrList() // 遍历获取审核列表，找到对应id将其更新到指定key的数据中
 	if err != nil {
 		return list, err

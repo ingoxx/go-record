@@ -1,10 +1,6 @@
 package main
 
 import (
-	"crypto/aes"
-	"crypto/cipher"
-	"crypto/rand"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"github.com/go-playground/validator/v10"
@@ -46,6 +42,7 @@ type Group struct {
 type Message struct {
 	GroupID   string `json:"group_id"`
 	UserID    string `json:"user_id"`
+	SenderID  string `json:"sender_id"`
 	Content   string `json:"content"`
 	Time      string `json:"time"`
 	Type      string `json:"type"`       // normal / count
@@ -93,15 +90,15 @@ var (
 )
 
 func main() {
-	log.Println("version: v1.1.42")
+	log.Println("version: v1.1.45")
 
 	http.HandleFunc("/ws", handleConnections)
 	http.HandleFunc("/get-online", handleOnline)
-	http.HandleFunc("/user-add-square", handleAddBasketballSquare)
+	http.HandleFunc("/user-add-square", handleAddSquare)
 	http.HandleFunc("/check-list", handleCheckAddAddrList)
 	http.HandleFunc("/add-square-refuse", handleAddAddrRefuse)
 	http.HandleFunc("/add-square-pass", handleAddAddrPass)
-	http.HandleFunc("/show-square", handleShowBasketballSquare)
+	http.HandleFunc("/show-square", handleShowSportsSquare)
 	http.HandleFunc("/wx-login", handleWxLogin)
 
 	// 启动广播处理器
@@ -199,8 +196,8 @@ func handleWxLogin(w http.ResponseWriter, r *http.Request) {
 
 }
 
-// handleShowBasketballSquare 根据用户传入的坐标显示用户当前位置附近所有篮球场
-func handleShowBasketballSquare(w http.ResponseWriter, r *http.Request) {
+// handleShowSportsSquare 根据用户传入的坐标显示用户当前位置附近所有运动场场
+func handleShowSportsSquare(w http.ResponseWriter, r *http.Request) {
 	var rp = Resp{w: w}
 	if r.Method != http.MethodGet {
 		rp.h(Resp{
@@ -215,7 +212,8 @@ func handleShowBasketballSquare(w http.ResponseWriter, r *http.Request) {
 	lat := r.FormValue("lat")
 	city := r.FormValue("city")
 	uid := r.FormValue("uid")
-	// 中文
+	sportKey := r.FormValue("sport_key")
+	keyWord := r.FormValue("sport_name") // 中文运动场地名称：篮球场，羽毛球场
 
 	if lng == "" || lat == "" || city == "" || uid == "" {
 		rp.h(Resp{
@@ -224,6 +222,12 @@ func handleShowBasketballSquare(w http.ResponseWriter, r *http.Request) {
 			Data: "0",
 		})
 		return
+	}
+
+	// 默认获取的场地是篮球场
+	if sportKey == "" || keyWord == "" {
+		sportKey = "bks"
+		keyWord = "篮球场"
 	}
 
 	if err := redis.NewRM().GetWxOpenid(uid); err != nil {
@@ -236,8 +240,8 @@ func handleShowBasketballSquare(w http.ResponseWriter, r *http.Request) {
 	}
 
 	cityPy := pinyin.LazyPinyin(city, pinyin.NewArgs())
-	log.Printf("中文： %s, 拼音： %s\n", city, cityPy)
-	ol, err := redis.NewRM().GetAllData(strings.Join(cityPy, ""), city)
+	fullKey := fmt.Sprintf("%s_%s", strings.Join(cityPy, ""), sportKey) // 最终的key：shenzhenshi_bks
+	ol, err := redis.NewRM().GetAllData(fullKey, city, keyWord)
 	if err != nil {
 		rp.h(Resp{
 			Msg:  err.Error(),
@@ -443,8 +447,8 @@ func handleAddAddrPass(w http.ResponseWriter, r *http.Request) {
 
 }
 
-// handleAddBasketballSquare 将用户填入的地址添加到列表中
-func handleAddBasketballSquare(w http.ResponseWriter, r *http.Request) {
+// handleAddSquare 用户提交的地址添加到地址列表
+func handleAddSquare(w http.ResponseWriter, r *http.Request) {
 	var rp = Resp{w: w}
 	if r.Method != http.MethodPost {
 		rp.h(Resp{
@@ -486,7 +490,7 @@ func handleAddBasketballSquare(w http.ResponseWriter, r *http.Request) {
 
 	defer r.Body.Close()
 
-	var data form.AddAddrForm
+	var data form.AddrListForm
 
 	if err := json.Unmarshal(b, &data); err != nil {
 		rp.h(Resp{
@@ -507,6 +511,7 @@ func handleAddBasketballSquare(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data.CityPy = strings.Join(pinyin.LazyPinyin(data.City, pinyin.NewArgs()), "")
+	data.SportKey = fmt.Sprintf("%s_%s", data.CityPy, data.SportKey)
 	if err := redis.NewRM().UserAddAddrReq(data); err != nil {
 		rp.h(Resp{
 			Msg:  err.Error(),
@@ -733,48 +738,4 @@ func handleBroadcast() {
 		}
 		group.Lock.Unlock()
 	}
-}
-
-// Encrypt 使用 AES-GCM 加密字符串
-func Encrypt(plaintext string, key []byte) (string, error) {
-	block, err := aes.NewCipher(key)
-	if err != nil {
-		return "", err
-	}
-	gcm, err := cipher.NewGCM(block)
-	if err != nil {
-		return "", err
-	}
-	nonce := make([]byte, gcm.NonceSize())
-	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
-		return "", err
-	}
-	ciphertext := gcm.Seal(nonce, nonce, []byte(plaintext), nil)
-	return hex.EncodeToString(ciphertext), nil
-}
-
-// Decrypt 使用 AES-GCM 解密字符串
-func Decrypt(ciphertextHex string, key []byte) (string, error) {
-	ciphertext, err := hex.DecodeString(ciphertextHex)
-	if err != nil {
-		return "", err
-	}
-	block, err := aes.NewCipher(key)
-	if err != nil {
-		return "", err
-	}
-	gcm, err := cipher.NewGCM(block)
-	if err != nil {
-		return "", err
-	}
-	nonceSize := gcm.NonceSize()
-	if len(ciphertext) < nonceSize {
-		return "", fmt.Errorf("密文太短")
-	}
-	nonce, actualCiphertext := ciphertext[:nonceSize], ciphertext[nonceSize:]
-	plaintext, err := gcm.Open(nil, nonce, actualCiphertext, nil)
-	if err != nil {
-		return "", err
-	}
-	return string(plaintext), nil
 }

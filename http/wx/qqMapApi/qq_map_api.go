@@ -54,9 +54,10 @@ type TxMapApi struct {
 	KeyWord string
 }
 
-func NewTxMapApi(city string) TxMapApi {
+func NewTxMapApi(city, keyWord string) TxMapApi {
 	return TxMapApi{
-		City: city,
+		City:    city,
+		KeyWord: keyWord,
 	}
 }
 
@@ -66,7 +67,7 @@ func (t TxMapApi) KeyWordSearch() ([]SaveInRedis, error) {
 	offset := 1
 
 	for offset <= 5 {
-		url := fmt.Sprintf("https://apis.map.qq.com/ws/place/v1/suggestion?region=%s&keyword=篮球场&key=YSRBZ-GSVY3-3P23L-RNWCE-OQB3V-T6BXG&page_size=20&page_index=%d", t.City, offset)
+		url := fmt.Sprintf("https://apis.map.qq.com/ws/place/v1/suggestion?region=%s&keyword=%s&key=YSRBZ-GSVY3-3P23L-RNWCE-OQB3V-T6BXG&page_size=20&page_index=%d", t.City, t.KeyWord, offset)
 		resp, err := http.Get(url)
 		if err != nil {
 			return sd, err
