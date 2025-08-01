@@ -11,7 +11,8 @@ type AddrListForm struct {
 	Img      string  `json:"img"`
 	Lat      float64 `json:"lat"`
 	Lng      float64 `json:"lng"`
-	IsRecord bool    `json:"is_record"`
+	IsRecord bool    `json:"is_record"` // true：已记录，false：未记录
+	IsShow   bool    `json:"is_show"`   // 审核列表中的数据，true：隐藏，false：不隐藏
 }
 
 type PassAddrReqForm struct {
@@ -27,6 +28,14 @@ type Sports struct {
 	Name    string `json:"name"`
 	Key     string `json:"key"`
 	Id      string `json:"id"`
+	Img     string `json:"img"`
+	Checked bool   `json:"checked"`
+}
+
+type SportList struct {
+	Name    string `json:"name"`
+	Key     string `json:"key"`
+	Icon    string `json:"icon"`
 	Img     string `json:"img"`
 	Checked bool   `json:"checked"`
 }

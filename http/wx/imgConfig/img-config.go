@@ -1,7 +1,7 @@
 package imgConfig
 
 func SportsImg() map[string]string {
-	imgs := map[string]string{
+	img := map[string]string{
 		"bks": "",
 		"sws": "",
 		"gos": "",
@@ -10,5 +10,5 @@ func SportsImg() map[string]string {
 		"bms": "",
 	}
 
-	return nil
+	return img
 }

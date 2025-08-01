@@ -20,16 +20,8 @@ import (
 )
 
 var (
-	validate      = validator.New()
-	filter        = sensitive.New()
-	getLastNChars = func(s string, n int) string {
-		// 安全检查：如果字符串长度不足n，则返回整个字符串
-		if len(s) <= n {
-			return s
-		}
-		// 否则，安全地截取
-		return s[len(s)-n:]
-	}
+	validate = validator.New()
+	filter   = sensitive.New()
 )
 
 // Group 一个群聊包含多个客户端连接 + 消息历史
@@ -50,10 +42,11 @@ type Message struct {
 }
 
 type Resp struct {
-	w    http.ResponseWriter
-	Data interface{} `json:"data"`
-	Msg  string      `json:"msg"`
-	Code int         `json:"code"`
+	w         http.ResponseWriter
+	OtherData interface{} `json:"other_data"`
+	Data      interface{} `json:"data"`
+	Msg       string      `json:"msg"`
+	Code      int         `json:"code"`
 }
 
 func (r Resp) message(rd Resp) ([]byte, error) {
@@ -90,7 +83,7 @@ var (
 )
 
 func main() {
-	log.Println("version: v1.1.45")
+	log.Println("version: v1.1.48")
 
 	http.HandleFunc("/ws", handleConnections)
 	http.HandleFunc("/get-online", handleOnline)
@@ -240,7 +233,7 @@ func handleShowSportsSquare(w http.ResponseWriter, r *http.Request) {
 	}
 
 	cityPy := pinyin.LazyPinyin(city, pinyin.NewArgs())
-	fullKey := fmt.Sprintf("%s_%s", strings.Join(cityPy, ""), sportKey) // 最终的key：shenzhenshi_bks
+	fullKey := fmt.Sprintf("%s_%s", strings.Join(cityPy, ""), sportKey) // 拼接的key：shenzhenshi_bks
 	ol, err := redis.NewRM().GetAllData(fullKey, city, keyWord)
 	if err != nil {
 		rp.h(Resp{
@@ -251,10 +244,21 @@ func handleShowSportsSquare(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	sl, err := redis.NewRM().GetSportList()
+	if err != nil {
+		rp.h(Resp{
+			Msg:  err.Error(),
+			Code: 1005,
+			Data: ol,
+		})
+		return
+	}
+
 	rp.h(Resp{
-		Msg:  "ok",
-		Code: 1000,
-		Data: ol,
+		Msg:       "ok",
+		Code:      1000,
+		Data:      ol,
+		OtherData: sl,
 	})
 }
 
@@ -348,7 +352,7 @@ func handleAddAddrRefuse(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	nd, err := redis.NewRM().UpdateAddrList(data.Id)
+	nd, err := redis.NewRM().UpdateAddrList(data.Id, false)
 	if err != nil {
 		rp.h(Resp{
 			Msg:  err.Error(),
@@ -420,6 +424,7 @@ func handleAddAddrPass(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// key:shenzhenshi_bks
 	if _, err := redis.NewRM().Update(data.City, data.Id); err != nil {
 		rp.h(Resp{
 			Msg:  err.Error(),
@@ -429,7 +434,7 @@ func handleAddAddrPass(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	nd, err := redis.NewRM().UpdateAddrList(data.Id)
+	nd, err := redis.NewRM().UpdateAddrList(data.Id, true)
 	if err != nil {
 		rp.h(Resp{
 			Msg:  err.Error(),
@@ -511,7 +516,7 @@ func handleAddSquare(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data.CityPy = strings.Join(pinyin.LazyPinyin(data.City, pinyin.NewArgs()), "")
-	data.SportKey = fmt.Sprintf("%s_%s", data.CityPy, data.SportKey)
+	data.SportKey = fmt.Sprintf("%s_%s", data.CityPy, data.SportKey) // 拼接的key：shenzhenshi_bks
 	if err := redis.NewRM().UserAddAddrReq(data); err != nil {
 		rp.h(Resp{
 			Msg:  err.Error(),

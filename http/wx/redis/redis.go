@@ -54,7 +54,7 @@ func NewRM() *RM {
 }
 
 func (r *RM) formatKey(key string) string {
-	return fmt.Sprintf("%s-%s", groupKey, key)
+	return fmt.Sprintf("%s_%s", groupKey, key)
 }
 
 func (r *RM) Set(key string, b interface{}, expire time.Duration) error {
@@ -74,9 +74,9 @@ func (r *RM) Get(key string) (string, error) {
 	return result, nil
 }
 
-// GetAllData 当前市的所有篮球场地址, 只保留两周, 两周后重新更新
+// GetAllData 当前市某个运动的场地址地址, 只保留两周, 两周后重新更新
 func (r *RM) GetAllData(key, cnKey, keyWord string) (string, error) {
-	// 最终的key：shenzhenshi_bks
+	// key：shenzhenshi_bks
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -120,7 +120,7 @@ func (r *RM) mergeData(key string) ([]qqMapApi.SaveInRedis, error) {
 
 	dataList = make([]qqMapApi.SaveInRedis, 0, len(list))
 	for _, data := range list {
-		if data.SportKey == key {
+		if data.SportKey == key && data.IsRecord {
 			ad := qqMapApi.SaveInRedis{
 				Id:     data.Id,
 				Tags:   []string{data.Tags},
@@ -155,16 +155,16 @@ func (r *RM) Update(key, id string) ([]qqMapApi.SaveInRedis, error) {
 	}
 
 	for _, data := range list {
-		if data.Id == id && !data.IsRecord && data.CityPy == key {
+		if data.Id == id {
 			ad := qqMapApi.SaveInRedis{
 				Id:     data.Id,
-				Tags:   []string{"篮球场"},
+				Tags:   []string{data.Tags},
 				Img:    "https://mp-578c2584-f82c-45e7-9d53-51332c711501.cdn.bspapp.com/wx-fbs/bk3.svg",
 				Addr:   data.Addr,
 				Lat:    data.Lat,
 				Lng:    data.Lng,
 				UserId: data.UserId,
-				Title:  "篮球场",
+				Title:  data.Tags,
 			}
 			dataList = append(dataList, ad)
 			break
@@ -180,7 +180,7 @@ func (r *RM) Update(key, id string) ([]qqMapApi.SaveInRedis, error) {
 		return dataList, err
 	}
 
-	if _, err := r.UpdateAddrList(id); err != nil {
+	if _, err := r.UpdateAddrList(id, true); err != nil {
 		return dataList, err
 	}
 
@@ -242,7 +242,7 @@ func (r *RM) UserAddAddrReq(data form.AddrListForm) error {
 }
 
 // UpdateAddrList 更新审核列表
-func (r *RM) UpdateAddrList(id string) ([]*form.AddrListForm, error) {
+func (r *RM) UpdateAddrList(id string, status bool) ([]*form.AddrListForm, error) {
 	list, err := r.GetAddrList() // 遍历获取审核列表，找到对应id将其更新到指定key的数据中
 	if err != nil {
 		return list, err
@@ -250,7 +250,8 @@ func (r *RM) UpdateAddrList(id string) ([]*form.AddrListForm, error) {
 
 	for _, v := range list {
 		if v.Id == id {
-			v.IsRecord = true
+			v.IsRecord = status
+			v.IsShow = true
 		}
 	}
 
@@ -407,4 +408,22 @@ func (r *RM) VerifyWxUser(hash string) (string, error) {
 	}
 
 	return oid, nil
+}
+
+// GetSportList 运动场地列表
+func (r *RM) GetSportList() ([]form.SportList, error) {
+	var data []form.SportList
+	sports := `[
+		{"name": "篮球场", "key": "bks", "checked": false, "icon": "🏀", "img": "https://mp-578c2584-f82c-45e7-9d53-51332c711501.cdn.bspapp.com/wx-fbs/main-bk.jpg"},
+		{"name": "游泳馆", "key": "sws", "checked": false, "icon": "🏊", "img": "https://mp-578c2584-f82c-45e7-9d53-51332c711501.cdn.bspapp.com/wx-fbs/swim.png"},
+		{"name": "羽毛球馆", "key": "bms", "checked": false, "icon": "🏸", "img": "https://mp-578c2584-f82c-45e7-9d53-51332c711501.cdn.bspapp.com/wx-fbs/badminton.png"},
+		{"name": "足球场", "key": "fbs", "checked": false, "icon": "⚽", "img": "https://mp-578c2584-f82c-45e7-9d53-51332c711501.cdn.bspapp.com/wx-fbs/football.png"},
+		{"name": "网球场", "key": "tns", "checked": false, "icon": "🎾", "img": "https://mp-578c2584-f82c-45e7-9d53-51332c711501.cdn.bspapp.com/wx-fbs/tennis.png"},
+		{"name": "高尔夫球场", "key": "gos", "checked": false, "icon": "🏌️", "img": "https://mp-578c2584-f82c-45e7-9d53-51332c711501.cdn.bspapp.com/wx-fbs/golf.png"}
+	]`
+	if err := json.Unmarshal([]byte(sports), &data); err != nil {
+		return data, err
+	}
+
+	return data, nil
 }
