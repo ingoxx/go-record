@@ -74,7 +74,7 @@ func (r *RM) Get(key string) (string, error) {
 	return result, nil
 }
 
-// GetAllData 当前市某个运动的场地址地址, 只保留两周, 两周后重新更新
+// GetAllData 当前市某个运动的所有场地地址列表, 只保留两周, 两周后重新更新, 主要是为了获取最新的场地数据
 func (r *RM) GetAllData(key, cnKey, keyWord string) (string, error) {
 	// key：shenzhenshi_bks
 	r.mu.Lock()
@@ -138,6 +138,7 @@ func (r *RM) mergeData(key string) ([]qqMapApi.SaveInRedis, error) {
 	return dataList, nil
 }
 
+// Update 将审核通过的新的场地地添加到对应的列表中
 func (r *RM) Update(key, id string) ([]qqMapApi.SaveInRedis, error) {
 	var dataList []qqMapApi.SaveInRedis
 	result, err := r.Get(key)

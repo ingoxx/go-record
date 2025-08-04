@@ -7,6 +7,7 @@ import (
 	"github.com/importcjj/sensitive"
 	"github.com/ingoxx/go-record/http/wx/form"
 	"github.com/ingoxx/go-record/http/wx/redis"
+	"github.com/ingoxx/go-record/http/wx/utils/ddw"
 	"github.com/mozillazg/go-pinyin"
 	"io"
 	"log"
@@ -20,8 +21,10 @@ import (
 )
 
 var (
+	// 字段请求验证器
 	validate = validator.New()
-	filter   = sensitive.New()
+	// 脏字库过滤器
+	filter = sensitive.New()
 )
 
 // Group 一个群聊包含多个客户端连接 + 消息历史
@@ -31,6 +34,7 @@ type Group struct {
 	Lock     sync.Mutex
 }
 
+// Message 用户聊天数据的数据结构
 type Message struct {
 	GroupID   string `json:"group_id"`
 	UserID    string `json:"user_id"`
@@ -41,6 +45,7 @@ type Message struct {
 	UserCount int    `json:"user_count"` // 当前群人数
 }
 
+// Resp 响应的数据结构
 type Resp struct {
 	w         http.ResponseWriter
 	OtherData interface{} `json:"other_data"`
@@ -83,24 +88,26 @@ var (
 )
 
 func main() {
-	log.Println("version: v1.1.48")
+	log.Println("version: v1.1.51")
 
-	http.HandleFunc("/ws", handleConnections)
-	http.HandleFunc("/get-online", handleOnline)
-	http.HandleFunc("/user-add-square", handleAddSquare)
-	http.HandleFunc("/check-list", handleCheckAddAddrList)
-	http.HandleFunc("/add-square-refuse", handleAddAddrRefuse)
-	http.HandleFunc("/add-square-pass", handleAddAddrPass)
-	http.HandleFunc("/show-square", handleShowSportsSquare)
-	http.HandleFunc("/wx-login", handleWxLogin)
+	mux := http.NewServeMux()
+	mux.HandleFunc("/ws", handleConnections)
+	mux.HandleFunc("/get-online", handleOnline)
+	mux.HandleFunc("/user-add-square", handleAddSquare)
+	mux.HandleFunc("/check-list", handleCheckAddAddrList)
+	mux.HandleFunc("/add-square-refuse", handleAddAddrRefuse)
+	mux.HandleFunc("/add-square-pass", handleAddAddrPass)
+	mux.HandleFunc("/show-square", handleShowSportsSquare)
+	mux.HandleFunc("/wx-login", handleWxLogin)
 
 	// 启动广播处理器
 	go handleBroadcast()
 
 	log.Println("Server started on :11806")
-	log.Fatal(http.ListenAndServe(":11806", nil))
+	log.Fatal(http.ListenAndServe(":11806", mux))
 }
 
+// handleWxLogin 微信登陆
 func handleWxLogin(w http.ResponseWriter, r *http.Request) {
 	var rp = Resp{w: w}
 	if r.Method != http.MethodPost {
@@ -252,6 +259,10 @@ func handleShowSportsSquare(w http.ResponseWriter, r *http.Request) {
 			Data: ol,
 		})
 		return
+	}
+
+	if err := ddw.NewDDWarn(fmt.Sprintf("用户id：%s，打开了小程序，选择了：%s运动", uid, keyWord)).Send(); err != nil {
+		log.Println(err.Error())
 	}
 
 	rp.h(Resp{
@@ -526,6 +537,10 @@ func handleAddSquare(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if err := ddw.NewDDWarn(fmt.Sprintf("用户id：%s，城市：%s, 添加地址：%s", uid, data.City, data.Addr)).Send(); err != nil {
+		log.Println(err.Error())
+	}
+
 	rp.h(Resp{
 		Msg:  "ok",
 		Code: 1000,
@@ -584,6 +599,7 @@ func handleOnline(w http.ResponseWriter, r *http.Request) {
 
 }
 
+// handleConnections 聊天室接收到的用户发的信息
 func handleConnections(w http.ResponseWriter, r *http.Request) {
 	uid := r.FormValue("uid")
 	if uid == "" {
@@ -656,11 +672,6 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 	// 先把历史消息发给新连接（可选）
 	group.Lock.Lock()
 	for _, oldMsg := range group.Messages {
-		//UserIDBytes, err := bcrypt.GenerateFromPassword([]byte(oldMsg.UserID), bcrypt.DefaultCost)
-		//if err != nil {
-		//	oldMsg.UserID = "user_unknown"
-		//}
-		//oldMsg.UserID = fmt.Sprintf("user_%s", getLastNChars(string(UserIDBytes), 10))
 		oldMsg.Content = filter.Replace(oldMsg.Content, '*')
 		if err := ws.WriteJSON(oldMsg); err != nil {
 			log.Println("发送历史消息失败:", err)
@@ -696,6 +707,9 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 		}
 
 		log.Printf("用户: %s, 群组：%s, 发送的内容: %s\n", msg.UserID, msg.GroupID, msg.Content)
+		if err := ddw.NewDDWarn(fmt.Sprintf("用户: %s, 群组：%s, 发送的内容: %s\n", msg.UserID, msg.GroupID, msg.Content)).Send(); err != nil {
+			log.Println(err.Error())
+		}
 
 		// 普通消息
 		msg.Type = "normal"
@@ -710,6 +724,7 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// handleBroadcast 将用户发送的信息过滤处理后返回到前端
 func handleBroadcast() {
 	for {
 		msg := <-broadcast
@@ -730,11 +745,6 @@ func handleBroadcast() {
 
 		group.Lock.Lock()
 		for client := range group.Clients {
-			//UserIDBytes, err := bcrypt.GenerateFromPassword([]byte(msg.UserID), bcrypt.DefaultCost)
-			//if err != nil {
-			//	msg.UserID = "user_unknown"
-			//}
-			//msg.UserID = fmt.Sprintf("user_%s", getLastNChars(string(UserIDBytes), 10))
 			if err := client.WriteJSON(msg); err != nil {
 				log.Println("广播失败，删除连接:", err)
 				client.Close()
