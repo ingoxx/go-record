@@ -24,7 +24,9 @@ var (
 	// 字段请求验证器
 	validate = validator.New()
 	// 脏字库过滤器
-	filter = sensitive.New()
+	filter   = sensitive.New()
+	adminOne = "ogR3E62jXXJMbVcImRqMA1gTSegM"
+	adminTwo = "user_ogR3E62jXXJMbVcImRqMA1gTSegM"
 )
 
 // Group 一个群聊包含多个客户端连接 + 消息历史
@@ -88,7 +90,7 @@ var (
 )
 
 func main() {
-	log.Println("version: v1.1.51")
+	log.Println("version: v1.1.53")
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/ws", handleConnections)
@@ -261,8 +263,10 @@ func handleShowSportsSquare(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := ddw.NewDDWarn(fmt.Sprintf("用户id：%s，打开了小程序，选择了：%s运动", uid, keyWord)).Send(); err != nil {
-		log.Println(err.Error())
+	if uid != adminOne {
+		if err := ddw.NewDDWarn(fmt.Sprintf("用户id：%s，打开了小程序，选择了：%s运动", uid, keyWord)).Send(); err != nil {
+			log.Println(err.Error())
+		}
 	}
 
 	rp.h(Resp{
@@ -537,8 +541,10 @@ func handleAddSquare(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := ddw.NewDDWarn(fmt.Sprintf("用户id：%s，城市：%s, 添加地址：%s", uid, data.City, data.Addr)).Send(); err != nil {
-		log.Println(err.Error())
+	if uid != adminOne {
+		if err := ddw.NewDDWarn(fmt.Sprintf("用户id：%s，城市：%s, 添加地址：%s", uid, data.City, data.Addr)).Send(); err != nil {
+			log.Println(err.Error())
+		}
 	}
 
 	rp.h(Resp{
@@ -707,8 +713,10 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 		}
 
 		log.Printf("用户: %s, 群组：%s, 发送的内容: %s\n", msg.UserID, msg.GroupID, msg.Content)
-		if err := ddw.NewDDWarn(fmt.Sprintf("用户: %s, 群组：%s, 发送的内容: %s\n", msg.UserID, msg.GroupID, msg.Content)).Send(); err != nil {
-			log.Println(err.Error())
+		if msg.UserID != adminTwo {
+			if err := ddw.NewDDWarn(fmt.Sprintf("用户: %s, 群组：%s, 发送的内容: %s\n", msg.UserID, msg.GroupID, msg.Content)).Send(); err != nil {
+				log.Println(err.Error())
+			}
 		}
 
 		// 普通消息
