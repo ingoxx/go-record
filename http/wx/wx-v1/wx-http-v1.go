@@ -24,9 +24,10 @@ var (
 	// 字段请求验证器
 	validate = validator.New()
 	// 脏字库过滤器
-	filter   = sensitive.New()
-	adminOne = "ogR3E62jXXJMbVcImRqMA1gTSegM"
-	adminTwo = "user_ogR3E62jXXJMbVcImRqMA1gTSegM"
+	filter    = sensitive.New()
+	adminOne  = "ogR3E62jXXJMbVcImRqMA1gTSegM"
+	adminTwo  = "user_ogR3E62jXXJMbVcImRqMA1gTSegM"
+	onlineKey = "online"
 )
 
 // Group 一个群聊包含多个客户端连接 + 消息历史
@@ -90,11 +91,12 @@ var (
 )
 
 func main() {
-	log.Println("version: v1.1.53")
+	log.Println("version: v1.1.58")
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/ws", handleConnections)
 	mux.HandleFunc("/get-online", handleOnline)
+	mux.HandleFunc("/get-all-online-data", handleAllOnlineData)
 	mux.HandleFunc("/user-add-square", handleAddSquare)
 	mux.HandleFunc("/check-list", handleCheckAddAddrList)
 	mux.HandleFunc("/add-square-refuse", handleAddAddrRefuse)
@@ -107,6 +109,54 @@ func main() {
 
 	log.Println("Server started on :11806")
 	log.Fatal(http.ListenAndServe(":11806", mux))
+}
+
+// handleAllOnlineData 获取所有的在线人数数据
+func handleAllOnlineData(w http.ResponseWriter, r *http.Request) {
+	log.Println(1111111111)
+	var rp = Resp{w: w}
+	if r.Method != http.MethodGet {
+		rp.h(Resp{
+			Msg:  "invalid request",
+			Code: 1001,
+			Data: "0",
+		})
+		return
+	}
+
+	uid := r.FormValue("uid")
+	if uid == "" {
+		rp.h(Resp{
+			Msg:  "invalid parameter",
+			Code: 1002,
+			Data: "0",
+		})
+		return
+	}
+	if err := redis.NewRM().GetWxOpenid(uid); err != nil {
+		rp.h(Resp{
+			Msg:  err.Error(),
+			Code: 1003,
+			Data: "0",
+		})
+		return
+	}
+	data, err := redis.NewRM().GetAllOnlineData()
+	if err != nil {
+		rp.h(Resp{
+			Msg:  err.Error(),
+			Code: 1004,
+			Data: "0",
+		})
+		return
+	}
+
+	rp.h(Resp{
+		Msg:  "ok",
+		Code: 1000,
+		Data: data,
+	})
+
 }
 
 // handleWxLogin 微信登陆
@@ -660,7 +710,8 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 	group.Clients[ws] = true
 	userCount := len(group.Clients)
 	if groupID != "" {
-		if err := redis.NewRM().Set(groupID, userCount, time.Second*time.Duration(7200)); err != nil {
+		gn := fmt.Sprintf("%s_%s", onlineKey, groupID)
+		if err := redis.NewRM().Set(gn, userCount, time.Second*time.Duration(7200)); err != nil {
 			log.Printf("[ERROR] 写入redis失败, 错误信息：%v", err)
 		}
 	}
@@ -696,7 +747,8 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 			userCount = len(group.Clients)
 			log.Printf("用户：%s, 组：%s, 当前人数: %d,  断开连接", initMsg.UserID, initMsg.GroupID, userCount)
 			if msg.GroupID != "" {
-				if err := redis.NewRM().Set(msg.GroupID, userCount, time.Second*time.Duration(7200)); err != nil {
+				gn := fmt.Sprintf("%s_%s", onlineKey, msg.GroupID)
+				if err := redis.NewRM().Set(gn, userCount, time.Second*time.Duration(7200)); err != nil {
 					log.Printf("[ERROR] 写入redis失败, 错误信息：%v", err)
 				}
 			}
@@ -742,7 +794,8 @@ func handleBroadcast() {
 		groupsMu.Lock()
 		group, ok := groups[groupID]
 		if msg.GroupID != "" {
-			if err := redis.NewRM().Set(msg.GroupID, msg.UserCount, time.Second*time.Duration(7200)); err != nil {
+			gn := fmt.Sprintf("%s_%s", onlineKey, msg.GroupID)
+			if err := redis.NewRM().Set(gn, msg.UserCount, time.Second*time.Duration(7200)); err != nil {
 				log.Println("[ERROR] fail to save user count.")
 			}
 		}

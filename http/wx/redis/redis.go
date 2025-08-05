@@ -18,6 +18,7 @@ var (
 	groupKey    = "group_id"
 	AddrListKey = "addr_check_list"
 	WxOPenIdKey = "wx_open_id_list"
+	onlineKey   = "online"
 	defaultImg  = "https://mp-578c2584-f82c-45e7-9d53-51332c711501.cdn.bspapp.com/wx-fbs/bk3.svg"
 	//cusAddrKey   = "group-id-cus"
 )
@@ -25,7 +26,7 @@ var (
 func init() {
 	rds = redis.NewClient(
 		&redis.Options{
-			Addr:         "127.0.0.1:6378",
+			Addr:         "193.112.111.237:6378",
 			DB:           1,
 			MinIdleConns: 5,
 			Password:     "chatai",
@@ -364,13 +365,14 @@ func (r *RM) GetWxOpenid(id string) error {
 
 // GetGroupOnline 获取在线人数
 func (r *RM) GetGroupOnline(key string) (string, error) {
-	result, err := r.Get(key)
+	gn := fmt.Sprintf("%s_%s", onlineKey, key)
+	result, err := r.Get(gn)
 	if err != nil && !errors.Is(err, redis.Nil) {
 		return result, err
 	}
 
 	if result == "" {
-		if err := r.Set(key, 0, time.Second*time.Duration(7200)); err != nil {
+		if err := r.Set(gn, 0, time.Second*time.Duration(7200)); err != nil {
 			return result, err
 		}
 
@@ -420,11 +422,40 @@ func (r *RM) GetSportList() ([]form.SportList, error) {
 		{"name": "羽毛球馆", "key": "bms", "checked": false, "icon": "🏸", "img": "https://mp-578c2584-f82c-45e7-9d53-51332c711501.cdn.bspapp.com/wx-fbs/badminton.png"},
 		{"name": "足球场", "key": "fbs", "checked": false, "icon": "⚽", "img": "https://mp-578c2584-f82c-45e7-9d53-51332c711501.cdn.bspapp.com/wx-fbs/football.png"},
 		{"name": "网球场", "key": "tns", "checked": false, "icon": "🎾", "img": "https://mp-578c2584-f82c-45e7-9d53-51332c711501.cdn.bspapp.com/wx-fbs/tennis.png"},
-		{"name": "高尔夫球场", "key": "gos", "checked": false, "icon": "🏌️", "img": "https://mp-578c2584-f82c-45e7-9d53-51332c711501.cdn.bspapp.com/wx-fbs/golf.png"}
+		{"name": "高尔夫球场", "key": "gos", "checked": false, "icon": "🏌️", "img": "https://mp-578c2584-f82c-45e7-9d53-51332c711501.cdn.bspapp.com/wx-fbs/golf.png"},
+		{"name": "健身房", "key": "gym", "checked": false, "icon": "🏋️‍♂️", "img": "https://mp-578c2584-f82c-45e7-9d53-51332c711501.cdn.bspapp.com/wx-fbs/gym.png"}
 	]`
 	if err := json.Unmarshal([]byte(sports), &data); err != nil {
 		return data, err
 	}
 
 	return data, nil
+}
+
+// GetAllOnlineData 获取所有在线人数的key
+func (r *RM) GetAllOnlineData() ([]string, error) {
+	var cursor uint64
+	var matchingKeys []string
+	matchPattern := "group_id_online*" // 定义你的匹配模式
+
+	for {
+		// 使用 Scan 方法，传入游标、匹配模式和建议的单次扫描数量
+		keys, nextCursor, err := rds.Scan(cursor, matchPattern, 10).Result()
+		if err != nil {
+			panic(err)
+		}
+
+		// 将本次扫描到的 key 追加到结果列表
+		matchingKeys = append(matchingKeys, keys...)
+
+		// 如果游标返回 0，说明迭代完成
+		if nextCursor == 0 {
+			break
+		}
+
+		// 更新游标以进行下一次迭代
+		cursor = nextCursor
+	}
+
+	return matchingKeys, nil
 }
