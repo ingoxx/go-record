@@ -39,3 +39,8 @@ type SportList struct {
 	Img     string `json:"img"`
 	Checked bool   `json:"checked"`
 }
+
+type GroupOnlineStatus struct {
+	GroupId    string `json:"group_id"`
+	OnlineUser string `json:"online_user"`
+}

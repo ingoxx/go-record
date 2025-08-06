@@ -8,6 +8,7 @@ import (
 	"github.com/ingoxx/go-record/http/wx/form"
 	"github.com/ingoxx/go-record/http/wx/redis"
 	"github.com/ingoxx/go-record/http/wx/utils/ddw"
+	"github.com/ingoxx/go-record/http/wx/utils/openid"
 	"github.com/mozillazg/go-pinyin"
 	"io"
 	"log"
@@ -25,8 +26,6 @@ var (
 	validate = validator.New()
 	// 脏字库过滤器
 	filter    = sensitive.New()
-	adminOne  = "ogR3E62jXXJMbVcImRqMA1gTSegM"
-	adminTwo  = "user_ogR3E62jXXJMbVcImRqMA1gTSegM"
 	onlineKey = "online"
 )
 
@@ -91,7 +90,7 @@ var (
 )
 
 func main() {
-	log.Println("version: v1.1.58")
+	log.Println("version: v1.1.67")
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/ws", handleConnections)
@@ -103,6 +102,7 @@ func main() {
 	mux.HandleFunc("/add-square-pass", handleAddAddrPass)
 	mux.HandleFunc("/show-square", handleShowSportsSquare)
 	mux.HandleFunc("/wx-login", handleWxLogin)
+	mux.HandleFunc("/get-all-sports", handleGetAllSports)
 
 	// 启动广播处理器
 	go handleBroadcast()
@@ -111,9 +111,48 @@ func main() {
 	log.Fatal(http.ListenAndServe(":11806", mux))
 }
 
+// handleGetAllSports 获取所有运动场地类型
+func handleGetAllSports(w http.ResponseWriter, r *http.Request) {
+	var rp = Resp{w: w}
+	if r.Method != http.MethodGet {
+		rp.h(Resp{
+			Msg:  "invalid request",
+			Code: 1001,
+			Data: "0",
+		})
+		return
+	}
+
+	uid := r.FormValue("uid")
+	if uid == "" {
+		rp.h(Resp{
+			Msg:  "invalid parameter",
+			Code: 1002,
+			Data: "0",
+		})
+		return
+	}
+
+	sl, err := redis.NewRM().GetSportList()
+	if err != nil {
+		rp.h(Resp{
+			Msg:  err.Error(),
+			Code: 1003,
+			Data: "0",
+		})
+		return
+	}
+
+	rp.h(Resp{
+		Msg:  "ok",
+		Code: 1000,
+		Data: sl,
+	})
+
+}
+
 // handleAllOnlineData 获取所有的在线人数数据
 func handleAllOnlineData(w http.ResponseWriter, r *http.Request) {
-	log.Println(1111111111)
 	var rp = Resp{w: w}
 	if r.Method != http.MethodGet {
 		rp.h(Resp{
@@ -303,27 +342,16 @@ func handleShowSportsSquare(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sl, err := redis.NewRM().GetSportList()
-	if err != nil {
-		rp.h(Resp{
-			Msg:  err.Error(),
-			Code: 1005,
-			Data: ol,
-		})
-		return
-	}
-
-	if uid != adminOne {
+	if !openid.NewWhiteList(uid).IsWhite() {
 		if err := ddw.NewDDWarn(fmt.Sprintf("用户id：%s，打开了小程序，选择了：%s运动", uid, keyWord)).Send(); err != nil {
 			log.Println(err.Error())
 		}
 	}
 
 	rp.h(Resp{
-		Msg:       "ok",
-		Code:      1000,
-		Data:      ol,
-		OtherData: sl,
+		Msg:  "ok",
+		Code: 1000,
+		Data: ol,
 	})
 }
 
@@ -591,7 +619,7 @@ func handleAddSquare(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if uid != adminOne {
+	if !openid.NewWhiteList(uid).IsWhite() {
 		if err := ddw.NewDDWarn(fmt.Sprintf("用户id：%s，城市：%s, 添加地址：%s", uid, data.City, data.Addr)).Send(); err != nil {
 			log.Println(err.Error())
 		}
@@ -765,7 +793,7 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 		}
 
 		log.Printf("用户: %s, 群组：%s, 发送的内容: %s\n", msg.UserID, msg.GroupID, msg.Content)
-		if msg.UserID != adminTwo {
+		if !openid.NewWhiteList(msg.UserID).IsWhite() {
 			if err := ddw.NewDDWarn(fmt.Sprintf("用户: %s, 群组：%s, 发送的内容: %s\n", msg.UserID, msg.GroupID, msg.Content)).Send(); err != nil {
 				log.Println(err.Error())
 			}
