@@ -90,7 +90,7 @@ var (
 )
 
 func main() {
-	log.Println("version: v1.1.67")
+	log.Println("version: v1.1.68")
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/ws", handleConnections)
@@ -277,6 +277,12 @@ func handleWxLogin(w http.ResponseWriter, r *http.Request) {
 			Data: "0",
 		})
 		return
+	}
+
+	if !openid.NewWhiteList(wxOpenid.Openid).IsWhite() {
+		if err := ddw.NewDDWarn(fmt.Sprintf("用户id：%s，打开了小程序", wxOpenid.Openid)).Send(); err != nil {
+			log.Println(err.Error())
+		}
 	}
 
 	rp.h(Resp{
