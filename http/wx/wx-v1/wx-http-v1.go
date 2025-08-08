@@ -2,9 +2,11 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/go-playground/validator/v10"
 	"github.com/importcjj/sensitive"
+	cuerr "github.com/ingoxx/go-record/http/wx/error"
 	"github.com/ingoxx/go-record/http/wx/form"
 	"github.com/ingoxx/go-record/http/wx/redis"
 	"github.com/ingoxx/go-record/http/wx/utils/ddw"
@@ -90,7 +92,7 @@ var (
 )
 
 func main() {
-	log.Println("version: v1.1.68")
+	log.Println("version: v1.1.77")
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/ws", handleConnections)
@@ -175,6 +177,15 @@ func handleUserJoinGroup(w http.ResponseWriter, r *http.Request) {
 
 	ol, err := redis.NewRM().UpdateJoinGroupUsers(data.GroupId, uid, data.Img)
 	if err != nil {
+		var dr *cuerr.DuplicateError
+		if errors.Is(err, dr) {
+			rp.h(Resp{
+				Msg:  err.Error(),
+				Code: 1006,
+				Data: "0",
+			})
+			return
+		}
 		rp.h(Resp{
 			Msg:  err.Error(),
 			Code: 1006,

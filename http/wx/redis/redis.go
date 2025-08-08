@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/go-redis/redis"
+	cuerr "github.com/ingoxx/go-record/http/wx/error"
 	"github.com/ingoxx/go-record/http/wx/form"
 	"github.com/ingoxx/go-record/http/wx/qqMapApi"
 	"golang.org/x/crypto/bcrypt"
@@ -485,6 +486,7 @@ func (r *RM) GetJoinGroupUsers(key string) ([]form.JoinGroupUsers, error) {
 	}
 
 	if result == "" {
+		var data = make([]form.JoinGroupUsers, 0)
 		return data, nil
 	}
 
@@ -531,6 +533,10 @@ func (r *RM) UpdateJoinGroupUsers(key, uid, img string) ([]form.JoinGroupUsers, 
 		return data, err
 	}
 
+	if r.checkUserIsJoinGroup(data, key, uid) {
+		return data, cuerr.NewDuplicateError("已在该球局")
+	}
+
 	data = append(data, d)
 	b, err := json.Marshal(&data)
 	if err != nil {
@@ -542,4 +548,13 @@ func (r *RM) UpdateJoinGroupUsers(key, uid, img string) ([]form.JoinGroupUsers, 
 	}
 
 	return data, nil
+}
+
+func (r *RM) checkUserIsJoinGroup(data []form.JoinGroupUsers, gid, uid string) bool {
+	for _, v := range data {
+		if v.GroupId == gid && v.User == uid {
+			return true
+		}
+	}
+	return false
 }

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/google/uuid"
+	"github.com/ingoxx/go-record/http/wx/form"
 	"io"
 	"net/http"
 	"time"
@@ -17,10 +18,10 @@ type Location struct {
 
 // DataItem 对应 JSON 中 "data" 数组的每个元素
 type DataItem struct {
+	Location Location `json:"location"` // 嵌套了 Location 结构体
 	ID       string   `json:"id"`
 	Title    string   `json:"title"`
 	Address  string   `json:"address"`
-	Location Location `json:"location"` // 嵌套了 Location 结构体
 	Province string   `json:"province"`
 	City     string   `json:"city"`
 	District string   `json:"district"`
@@ -37,16 +38,18 @@ type APIResponse struct {
 
 // SaveInRedis 写入redis的格式
 type SaveInRedis struct {
-	Id       string   `json:"id"`
-	Img      string   `json:"img"`
-	Addr     string   `json:"addr"`
-	Title    string   `json:"title"`
-	UserId   string   `json:"user_id"`
-	Lng      float64  `json:"lng"`
-	Lat      float64  `json:"lat"`
-	Online   string   `json:"online"`
-	Distance string   `json:"distance"`
-	Tags     []string `json:"tags"`
+	Tags          []string              `json:"tags"`
+	JoinUsers     []form.JoinGroupUsers `json:"join_users"` // 某个运动场地，用户点击加入组件的人数
+	Id            string                `json:"id"`
+	Img           string                `json:"img"`
+	Addr          string                `json:"addr"`
+	Title         string                `json:"title"`
+	UserId        string                `json:"user_id"`
+	Online        string                `json:"online"`
+	Distance      string                `json:"distance"`
+	JoinUserCount int                   `json:"join_user_count"`
+	Lng           float64               `json:"lng"`
+	Lat           float64               `json:"lat"`
 }
 
 type TxMapApi struct {
