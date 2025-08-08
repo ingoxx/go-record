@@ -95,6 +95,8 @@ func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/ws", handleConnections)
 	mux.HandleFunc("/get-online", handleOnline)
+	mux.HandleFunc("/get-join-users", handleGetJoinUsers)
+	mux.HandleFunc("/user-join-group", handleUserJoinGroup)
 	mux.HandleFunc("/get-all-online-data", handleAllOnlineData)
 	mux.HandleFunc("/user-add-square", handleAddSquare)
 	mux.HandleFunc("/check-list", handleCheckAddAddrList)
@@ -109,6 +111,133 @@ func main() {
 
 	log.Println("Server started on :11806")
 	log.Fatal(http.ListenAndServe(":11806", mux))
+}
+
+// handleUserJoinGroup 用户点击加入某个球局
+func handleUserJoinGroup(w http.ResponseWriter, r *http.Request) {
+	var rp = Resp{w: w}
+	if r.Method != http.MethodPost {
+		rp.h(Resp{
+			Msg:  "invalid request",
+			Code: 1001,
+			Data: "0",
+		})
+		return
+	}
+
+	uid := r.FormValue("uid")
+	if uid == "" {
+		rp.h(Resp{
+			Msg:  "invalid parameter",
+			Code: 1002,
+			Data: "0",
+		})
+		return
+	}
+
+	if err := redis.NewRM().GetWxOpenid(uid); err != nil {
+		rp.h(Resp{
+			Msg:  err.Error(),
+			Code: 1003,
+			Data: "0",
+		})
+		return
+	}
+
+	b, err := io.ReadAll(r.Body)
+	if err != nil {
+		rp.h(Resp{
+			Msg:  err.Error(),
+			Code: 1004,
+			Data: "0",
+		})
+		return
+	}
+
+	var data form.JoinGroupUsers
+	if err := json.Unmarshal(b, &data); err != nil {
+		rp.h(Resp{
+			Msg:  err.Error(),
+			Code: 1005,
+			Data: "0",
+		})
+		return
+	}
+
+	if err := validate.Struct(data); err != nil {
+		rp.h(Resp{
+			Msg:  err.Error(),
+			Code: 1005,
+			Data: "0",
+		})
+		return
+	}
+
+	ol, err := redis.NewRM().UpdateJoinGroupUsers(data.GroupId, uid, data.Img)
+	if err != nil {
+		rp.h(Resp{
+			Msg:  err.Error(),
+			Code: 1006,
+			Data: "0",
+		})
+		return
+	}
+
+	rp.h(Resp{
+		Msg:  "ok",
+		Code: 1000,
+		Data: ol,
+	})
+
+}
+
+// handleGetJoinUsers 获取某个组加入的所有用户信息
+func handleGetJoinUsers(w http.ResponseWriter, r *http.Request) {
+	var rp = Resp{w: w}
+	if r.Method != http.MethodGet {
+		rp.h(Resp{
+			Msg:  "invalid request",
+			Code: 1001,
+			Data: "0",
+		})
+		return
+	}
+
+	gid := r.FormValue("gid")
+	uid := r.FormValue("uid")
+	if gid == "" || uid == "" {
+		rp.h(Resp{
+			Msg:  "invalid parameter",
+			Code: 1002,
+			Data: "0",
+		})
+		return
+	}
+
+	if err := redis.NewRM().GetWxOpenid(uid); err != nil {
+		rp.h(Resp{
+			Msg:  err.Error(),
+			Code: 1003,
+			Data: "0",
+		})
+		return
+	}
+
+	ol, err := redis.NewRM().GetJoinGroupUsers(gid)
+	if err != nil {
+		rp.h(Resp{
+			Msg:  err.Error(),
+			Code: 1004,
+			Data: "0",
+		})
+		return
+	}
+
+	rp.h(Resp{
+		Msg:  "ok",
+		Code: 1000,
+		Data: ol,
+	})
 }
 
 // handleGetAllSports 获取所有运动场地类型

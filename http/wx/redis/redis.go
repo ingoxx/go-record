@@ -14,12 +14,13 @@ import (
 )
 
 var (
-	rds         *redis.Client
-	groupKey    = "group_id"
-	AddrListKey = "addr_check_list"
-	WxOPenIdKey = "wx_open_id_list"
-	onlineKey   = "online"
-	defaultImg  = "https://mp-578c2584-f82c-45e7-9d53-51332c711501.cdn.bspapp.com/wx-fbs/bk3.svg"
+	rds          *redis.Client
+	groupKey     = "group_id"
+	AddrListKey  = "addr_check_list"
+	WxOPenIdKey  = "wx_open_id_list"
+	onlineKey    = "online"
+	joinGroupKey = "join"
+	defaultImg   = "https://mp-578c2584-f82c-45e7-9d53-51332c711501.cdn.bspapp.com/wx-fbs/bk3.svg"
 	//cusAddrKey   = "group-id-cus"
 )
 
@@ -472,4 +473,73 @@ func (r *RM) GetAllOnlineData() ([]form.GroupOnlineStatus, error) {
 	}
 
 	return onlineStatus, nil
+}
+
+// GetJoinGroupUsers 获取每个组加入的人数
+func (r *RM) GetJoinGroupUsers(key string) ([]form.JoinGroupUsers, error) {
+	var data []form.JoinGroupUsers
+	gn := fmt.Sprintf("%s_%s", joinGroupKey, key)
+	result, err := r.Get(gn)
+	if err != nil && !errors.Is(err, redis.Nil) {
+		return data, err
+	}
+
+	if result == "" {
+		return data, nil
+	}
+
+	if err := json.Unmarshal([]byte(result), &data); err != nil {
+		return data, err
+	}
+
+	return data, nil
+}
+
+// UpdateJoinGroupUsers 更新每个组加入的人数
+func (r *RM) UpdateJoinGroupUsers(key, uid, img string) ([]form.JoinGroupUsers, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	var data []form.JoinGroupUsers
+	gn := fmt.Sprintf("%s_%s", joinGroupKey, key)
+	result, err := r.Get(gn)
+	if err != nil && !errors.Is(err, redis.Nil) {
+		return data, err
+	}
+
+	var d = form.JoinGroupUsers{
+		GroupId: key,
+		User:    uid,
+		Img:     img,
+	}
+
+	if result == "" {
+		data = append(data, d)
+		b, err := json.Marshal(&data)
+		if err != nil {
+			return data, err
+		}
+
+		if err := r.Set(gn, b, time.Second*time.Duration(86400)); err != nil {
+			return data, err
+		}
+
+		return data, nil
+	}
+
+	if err := json.Unmarshal([]byte(result), &data); err != nil {
+		return data, err
+	}
+
+	data = append(data, d)
+	b, err := json.Marshal(&data)
+	if err != nil {
+		return data, err
+	}
+
+	if err := r.Set(gn, b, time.Second*time.Duration(86400)); err != nil {
+		return data, err
+	}
+
+	return data, nil
 }
