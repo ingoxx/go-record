@@ -92,7 +92,7 @@ var (
 )
 
 func main() {
-	log.Println("version: v1.1.77")
+	log.Println("version: v1.1.80")
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/ws", handleConnections)
@@ -175,7 +175,7 @@ func handleUserJoinGroup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ol, err := redis.NewRM().UpdateJoinGroupUsers(data.GroupId, uid, data.Img)
+	ol, err := redis.NewRM().JoinGroupUpdate(data)
 	if err != nil {
 		var dr *cuerr.DuplicateError
 		if errors.Is(err, dr) {
@@ -188,7 +188,7 @@ func handleUserJoinGroup(w http.ResponseWriter, r *http.Request) {
 		}
 		rp.h(Resp{
 			Msg:  err.Error(),
-			Code: 1006,
+			Code: 1007,
 			Data: "0",
 		})
 		return

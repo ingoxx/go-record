@@ -49,4 +49,5 @@ type JoinGroupUsers struct {
 	GroupId string `json:"group_id" validate:"required"`
 	User    string `json:"user"`
 	Img     string `json:"img"`
+	Oi      string `json:"oi"`
 }

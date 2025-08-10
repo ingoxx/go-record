@@ -497,26 +497,39 @@ func (r *RM) GetJoinGroupUsers(key string) ([]form.JoinGroupUsers, error) {
 	return data, nil
 }
 
+func (r *RM) JoinGroupUpdate(jd form.JoinGroupUsers) ([]form.JoinGroupUsers, error) {
+	var data []form.JoinGroupUsers
+
+	if jd.Oi == "1" {
+		return r.exitGroup(jd)
+	} else if jd.Oi == "2" {
+		return r.UpdateJoinGroupUsers(jd)
+	}
+
+	return data, errors.New("invalid parameter")
+
+}
+
 // UpdateJoinGroupUsers 更新每个组加入的人数
-func (r *RM) UpdateJoinGroupUsers(key, uid, img string) ([]form.JoinGroupUsers, error) {
+func (r *RM) UpdateJoinGroupUsers(jd form.JoinGroupUsers) ([]form.JoinGroupUsers, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
 	var data []form.JoinGroupUsers
-	gn := fmt.Sprintf("%s_%s", joinGroupKey, key)
+	gn := fmt.Sprintf("%s_%s", joinGroupKey, jd.GroupId)
 	result, err := r.Get(gn)
 	if err != nil && !errors.Is(err, redis.Nil) {
 		return data, err
 	}
 
-	var d = form.JoinGroupUsers{
-		GroupId: key,
-		User:    uid,
-		Img:     img,
-	}
+	//var d = form.JoinGroupUsers{
+	//	GroupId: key,
+	//	User:    uid,
+	//	Img:     img,
+	//}
 
 	if result == "" {
-		data = append(data, d)
+		data = append(data, jd)
 		b, err := json.Marshal(&data)
 		if err != nil {
 			return data, err
@@ -533,11 +546,11 @@ func (r *RM) UpdateJoinGroupUsers(key, uid, img string) ([]form.JoinGroupUsers, 
 		return data, err
 	}
 
-	if r.checkUserIsJoinGroup(data, key, uid) {
+	if r.checkUserIsJoinGroup(data, jd.GroupId, jd.User) {
 		return data, cuerr.NewDuplicateError("已在该球局")
 	}
 
-	data = append(data, d)
+	data = append(data, jd)
 	b, err := json.Marshal(&data)
 	if err != nil {
 		return data, err
@@ -548,6 +561,48 @@ func (r *RM) UpdateJoinGroupUsers(key, uid, img string) ([]form.JoinGroupUsers, 
 	}
 
 	return data, nil
+}
+
+func (r *RM) exitGroup(jd form.JoinGroupUsers) ([]form.JoinGroupUsers, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	var data []form.JoinGroupUsers
+	gn := fmt.Sprintf("%s_%s", joinGroupKey, jd.GroupId)
+	result, err := r.Get(gn)
+	if err != nil && !errors.Is(err, redis.Nil) {
+		return data, err
+	}
+
+	if result == "" {
+		return make([]form.JoinGroupUsers, 0), nil
+	}
+
+	if err := json.Unmarshal([]byte(result), &data); err != nil {
+		return data, err
+	}
+
+	var fd []form.JoinGroupUsers
+	for _, v := range data {
+		if v.User != jd.User {
+			fd = append(fd, v)
+		}
+	}
+
+	if len(fd) == 0 {
+		fd = make([]form.JoinGroupUsers, 0)
+	}
+
+	b, err := json.Marshal(&fd)
+	if err != nil {
+		return fd, err
+	}
+
+	if err := r.Set(gn, b, time.Second*time.Duration(86400)); err != nil {
+		return fd, err
+	}
+
+	return fd, nil
 }
 
 func (r *RM) checkUserIsJoinGroup(data []form.JoinGroupUsers, gid, uid string) bool {
