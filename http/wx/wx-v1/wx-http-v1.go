@@ -16,6 +16,8 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -27,8 +29,9 @@ var (
 	// 字段请求验证器
 	validate = validator.New()
 	// 脏字库过滤器
-	filter    = sensitive.New()
-	onlineKey = "online"
+	filter     = sensitive.New()
+	onlineKey  = "online"
+	uploadPath = "/opt/uploads"
 )
 
 // Group 一个群聊包含多个客户端连接 + 消息历史
@@ -92,7 +95,7 @@ var (
 )
 
 func main() {
-	log.Println("version: v1.1.80")
+	log.Println("version: v1.1.83")
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/ws", handleConnections)
@@ -107,12 +110,93 @@ func main() {
 	mux.HandleFunc("/show-square", handleShowSportsSquare)
 	mux.HandleFunc("/wx-login", handleWxLogin)
 	mux.HandleFunc("/get-all-sports", handleGetAllSports)
+	mux.HandleFunc("/wx-upload", handleUpload)
 
 	// 启动广播处理器
 	go handleBroadcast()
 
 	log.Println("Server started on :11806")
 	log.Fatal(http.ListenAndServe(":11806", mux))
+}
+
+// handleUpload 上传文件
+func handleUpload(w http.ResponseWriter, r *http.Request) {
+	var rp = Resp{w: w}
+	if r.Method != http.MethodPost {
+		rp.h(Resp{
+			Msg:  "invalid request",
+			Code: 1001,
+			Data: "0",
+		})
+		return
+	}
+
+	fileName := r.FormValue("filename")
+	uid := r.FormValue("uid")
+	if uid == "" || fileName == "" {
+		rp.h(Resp{
+			Msg:  "invalid parameter",
+			Code: 1002,
+			Data: "0",
+		})
+		return
+	}
+
+	// 限制上传文件大小（例：10MB）
+	r.ParseMultipartForm(10 << 20)
+
+	// 获取文件
+	file, _, err := r.FormFile("file")
+	if err != nil {
+		rp.h(Resp{
+			Msg:  err.Error(),
+			Code: 1003,
+			Data: "0",
+		})
+		return
+	}
+
+	defer file.Close()
+
+	// 创建保存路径（当前目录的 uploads 文件夹）
+	if err := os.MkdirAll(uploadPath, os.ModePerm); err != nil {
+		rp.h(Resp{
+			Msg:  err.Error(),
+			Code: 1004,
+			Data: "0",
+		})
+		return
+	}
+
+	// 创建目标文件
+	dstPath := filepath.Join(uploadPath, fileName)
+	dst, err := os.Create(dstPath)
+	if err != nil {
+		rp.h(Resp{
+			Msg:  err.Error(),
+			Code: 1005,
+			Data: "0",
+		})
+		return
+	}
+	defer dst.Close()
+
+	// 拷贝内容
+	if _, err := io.Copy(dst, file); err != nil {
+		rp.h(Resp{
+			Msg:  err.Error(),
+			Code: 1006,
+			Data: "0",
+		})
+		return
+	}
+
+	rp.h(Resp{
+		Msg:  "ok",
+		Code: 1000,
+		Data: "0",
+	})
+
 }
 
 // handleUserJoinGroup 用户点击加入某个球局

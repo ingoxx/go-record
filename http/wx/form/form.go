@@ -46,8 +46,9 @@ type GroupOnlineStatus struct {
 }
 
 type JoinGroupUsers struct {
-	GroupId string `json:"group_id" validate:"required"`
-	User    string `json:"user"`
-	Img     string `json:"img"`
-	Oi      string `json:"oi"`
+	GroupId  string `json:"group_id" validate:"required"`
+	User     string `json:"user"`
+	Img      string `json:"img"`
+	Oi       string `json:"oi"`
+	Evaluate string `json:"evaluate"`
 }
