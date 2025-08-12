@@ -7,9 +7,11 @@ import (
 	"github.com/go-redis/redis"
 	cuerr "github.com/ingoxx/go-record/http/wx/error"
 	"github.com/ingoxx/go-record/http/wx/form"
+	"github.com/ingoxx/go-record/http/wx/pkg/eva"
 	"github.com/ingoxx/go-record/http/wx/qqMapApi"
 	"golang.org/x/crypto/bcrypt"
 	"log"
+	"math/rand/v2"
 	"sync"
 	"time"
 )
@@ -21,6 +23,7 @@ var (
 	WxOPenIdKey  = "wx_open_id_list"
 	onlineKey    = "online"
 	joinGroupKey = "join"
+	evaKey       = "eva"
 	defaultImg   = "https://mp-578c2584-f82c-45e7-9d53-51332c711501.cdn.bspapp.com/wx-fbs/bk3.svg"
 	//cusAddrKey   = "group-id-cus"
 )
@@ -77,7 +80,7 @@ func (r *RM) Get(key string) (string, error) {
 	return result, nil
 }
 
-// GetAllData 当前市某个运动的所有场地地址列表, 只保留1个月, 1个月后重新更新, 主要是为了获取最新的场地数据
+// GetAllData 当前市某个运动的所有场地地址列表, 只保留半年月, 半年月后重新更新, 主要是为了获取最新的场地数据
 func (r *RM) GetAllData(key, cnKey, keyWord string) (string, error) {
 	// key：shenzhenshi_bks
 	r.mu.Lock()
@@ -104,7 +107,7 @@ func (r *RM) GetAllData(key, cnKey, keyWord string) (string, error) {
 		if err != nil {
 			return result, err
 		}
-		if err := r.Set(key, b, time.Second*time.Duration(2592000)); err != nil {
+		if err := r.Set(key, b, time.Second*time.Duration(12960000)); err != nil {
 			return result, err
 		}
 
@@ -272,57 +275,55 @@ func (r *RM) UpdateAddrList(id string, status bool) ([]*form.AddrListForm, error
 }
 
 // SetWxOpenid 保存微信用户的openid
-func (r *RM) SetWxOpenid(id string) error {
-	var data = make([]form.WxOpenidList, 0)
+func (r *RM) SetWxOpenid(wo *form.WxOpenidList) (*form.WxOpenidList, error) {
+	var data = make([]*form.WxOpenidList, 0)
+	var fd = new(form.WxOpenidList)
 	result, err := r.Get(WxOPenIdKey)
 	if err != nil && !errors.Is(err, redis.Nil) {
-		return err
+		return fd, err
 	}
 	if result == "" {
-		d := form.WxOpenidList{
-			Openid: id,
-		}
-		data = append(data, d)
+		data = append(data, wo)
 		b, err := json.Marshal(&data)
 		if err != nil {
-			return err
+			return fd, err
 		}
 
 		if err := r.Set(WxOPenIdKey, b, 0); err != nil {
-			return err
+			return fd, err
 		}
 
-		return nil
+		return fd, nil
 	}
 
 	if err := json.Unmarshal([]byte(result), &data); err != nil {
-		return err
+		return fd, err
 	}
 
 	var isExist bool
 	for _, v := range data {
-		if v.Openid == id {
+		if v.Openid == wo.Openid {
+			fd = v
 			isExist = true
+			break
 		}
 	}
 
 	if !isExist {
-		d := form.WxOpenidList{
-			Openid: id,
-		}
-		data = append(data, d)
+		wo.Img = r.generateRandomImg()
+		data = append(data, wo)
 
 		b, err := json.Marshal(&data)
 		if err != nil {
-			return err
+			return fd, err
 		}
 
 		if err := r.Set(WxOPenIdKey, b, 0); err != nil {
-			return err
+			return fd, err
 		}
 	}
 
-	return nil
+	return fd, nil
 }
 
 // GetWxOpenid 微信用户的openid
@@ -486,8 +487,7 @@ func (r *RM) GetJoinGroupUsers(key string) ([]form.JoinGroupUsers, error) {
 	}
 
 	if result == "" {
-		var data = make([]form.JoinGroupUsers, 0)
-		return data, nil
+		return make([]form.JoinGroupUsers, 0), nil
 	}
 
 	if err := json.Unmarshal([]byte(result), &data); err != nil {
@@ -521,12 +521,6 @@ func (r *RM) UpdateJoinGroupUsers(jd form.JoinGroupUsers) ([]form.JoinGroupUsers
 	if err != nil && !errors.Is(err, redis.Nil) {
 		return data, err
 	}
-
-	//var d = form.JoinGroupUsers{
-	//	GroupId: key,
-	//	User:    uid,
-	//	Img:     img,
-	//}
 
 	if result == "" {
 		data = append(data, jd)
@@ -563,6 +557,7 @@ func (r *RM) UpdateJoinGroupUsers(jd form.JoinGroupUsers) ([]form.JoinGroupUsers
 	return data, nil
 }
 
+// exitGroup 退出组局
 func (r *RM) exitGroup(jd form.JoinGroupUsers) ([]form.JoinGroupUsers, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -612,4 +607,81 @@ func (r *RM) checkUserIsJoinGroup(data []form.JoinGroupUsers, gid, uid string) b
 		}
 	}
 	return false
+}
+
+// GetMsgBoard 获取某个场地的所有评价
+func (r *RM) GetMsgBoard(gid, sportKey string) ([]*form.MsgBoard, error) {
+	var data []*form.MsgBoard
+	gn := fmt.Sprintf("%s_%s", evaKey, gid)
+	result, err := r.Get(gn)
+	if err != nil && !errors.Is(err, redis.Nil) {
+		return data, err
+	}
+
+	if result == "" {
+		board, err := eva.NewSportType(sportKey).DefaultEvaBoard()
+		if err == nil {
+			nd := r.updateImg(board)
+			return nd, nil
+		}
+		return make([]*form.MsgBoard, 0), nil
+	}
+
+	return data, nil
+}
+
+// UpdateMsgBoard 用户提交对谋个场地的评价
+func (r *RM) UpdateMsgBoard(mb form.MsgBoard) ([]form.MsgBoard, error) {
+	var data []form.MsgBoard
+	gn := fmt.Sprintf("%s_%s", evaKey, mb.GroupId)
+	result, err := r.Get(gn)
+	if err != nil && !errors.Is(err, redis.Nil) {
+		return data, err
+	}
+
+	if result == "" {
+		data = append(data, mb)
+		b, err := json.Marshal(&data)
+		if err != nil {
+			return data, err
+		}
+
+		if err := r.Set(gn, b, time.Second*time.Duration(86400)); err != nil {
+			return data, err
+		}
+
+		return data, nil
+	}
+
+	if err := json.Unmarshal([]byte(result), &data); err != nil {
+		return data, err
+	}
+
+	data = append(data, mb)
+	b, err := json.Marshal(&data)
+	if err != nil {
+		return data, err
+	}
+
+	if err := r.Set(gn, b, 0); err != nil {
+		return data, err
+	}
+
+	return data, nil
+}
+
+func (r *RM) updateImg(data []*form.MsgBoard) []*form.MsgBoard {
+	m1 := 1001
+	m2 := 2904
+	for _, v := range data {
+		v.Img = fmt.Sprintf("https://mp-578c2584-f82c-45e7-9d53-51332c711501.cdn.bspapp.com/profile3/%d.png", rand.IntN(m2-m1+1)+m1)
+	}
+
+	return data
+}
+
+func (r *RM) generateRandomImg() string {
+	m1 := 1001
+	m2 := 2904
+	return fmt.Sprintf("https://mp-578c2584-f82c-45e7-9d53-51332c711501.cdn.bspapp.com/profile3/%d.png", rand.IntN(m2-m1+1)+m1)
 }

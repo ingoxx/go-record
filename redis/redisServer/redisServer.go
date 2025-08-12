@@ -19,8 +19,8 @@ type Rds struct {
 func NewRds(openid string) *Rds {
 	var rdPool = redis.NewClient(
 		&redis.Options{
-			Addr:         "127.0.0.1:6377",
-			DB:           10,
+			Addr:         "193.112.111.237:6378",
+			DB:           1,
 			MinIdleConns: 5,
 			Password:     "chatai",
 			PoolSize:     5,

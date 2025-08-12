@@ -38,18 +38,20 @@ type APIResponse struct {
 
 // SaveInRedis 写入redis的格式
 type SaveInRedis struct {
-	Tags          []string              `json:"tags"`
-	JoinUsers     []form.JoinGroupUsers `json:"join_users"` // 某个运动场地，用户点击加入组件的人数
-	Id            string                `json:"id"`
-	Img           string                `json:"img"`
-	Addr          string                `json:"addr"`
-	Title         string                `json:"title"`
-	UserId        string                `json:"user_id"`
-	Online        string                `json:"online"`
-	Distance      string                `json:"distance"`
-	JoinUserCount int                   `json:"join_user_count"`
-	Lng           float64               `json:"lng"`
-	Lat           float64               `json:"lat"`
+	JoinUsers        []form.JoinGroupUsers `json:"join_users"` // 某个运动场地，用户点击加入组件的人数
+	UserReviews      []form.MsgBoard       `json:"user_reviews"`
+	Tags             []string              `json:"tags"`
+	Id               string                `json:"id"`
+	Img              string                `json:"img"`
+	Addr             string                `json:"addr"`
+	Title            string                `json:"title"`
+	UserId           string                `json:"user_id"`
+	Online           string                `json:"online"`
+	Distance         string                `json:"distance"`
+	JoinUserCount    int                   `json:"join_user_count"`
+	UserReviewsCount int                   `json:"user_reviews_count"`
+	Lng              float64               `json:"lng"`
+	Lat              float64               `json:"lat"`
 }
 
 type TxMapApi struct {

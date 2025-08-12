@@ -22,6 +22,7 @@ type PassAddrReqForm struct {
 
 type WxOpenidList struct {
 	Openid string `json:"openid"`
+	Img    string `json:"img"`
 }
 
 type Sports struct {
@@ -46,9 +47,16 @@ type GroupOnlineStatus struct {
 }
 
 type JoinGroupUsers struct {
+	GroupId string `json:"group_id" validate:"required"`
+	User    string `json:"user"`
+	Img     string `json:"img"`
+	Oi      string `json:"oi"`
+}
+
+type MsgBoard struct {
 	GroupId  string `json:"group_id" validate:"required"`
-	User     string `json:"user"`
-	Img      string `json:"img"`
-	Oi       string `json:"oi"`
-	Evaluate string `json:"evaluate"`
+	User     string `json:"user" validate:"required"`
+	Img      string `json:"img" validate:"required"`
+	Evaluate string `json:"evaluate" validate:"required"`
+	Time     string `json:"time" validate:"required"`
 }

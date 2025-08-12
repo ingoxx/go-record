@@ -95,7 +95,7 @@ var (
 )
 
 func main() {
-	log.Println("version: v1.1.83")
+	log.Println("version: v1.1.91")
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/ws", handleConnections)
@@ -111,12 +111,141 @@ func main() {
 	mux.HandleFunc("/wx-login", handleWxLogin)
 	mux.HandleFunc("/get-all-sports", handleGetAllSports)
 	mux.HandleFunc("/wx-upload", handleUpload)
+	mux.HandleFunc("/get-user-reviews", handleUserReviews)
+	mux.HandleFunc("/update-sport-reviews", handleUpdateUserReviews)
 
 	// 启动广播处理器
 	go handleBroadcast()
 
 	log.Println("Server started on :11806")
 	log.Fatal(http.ListenAndServe(":11806", mux))
+}
+
+// handleUpdateUserReviews 用户提交对某个场地的评价
+func handleUpdateUserReviews(w http.ResponseWriter, r *http.Request) {
+	var rp = Resp{w: w}
+	if r.Method != http.MethodPost {
+		rp.h(Resp{
+			Msg:  "invalid request",
+			Code: 1001,
+			Data: "0",
+		})
+		return
+	}
+	uid := r.FormValue("uid")
+	if uid == "" {
+		rp.h(Resp{
+			Msg:  "invalid parameter",
+			Code: 1002,
+			Data: "0",
+		})
+		return
+	}
+
+	if err := redis.NewRM().GetWxOpenid(uid); err != nil {
+		rp.h(Resp{
+			Msg:  err.Error(),
+			Code: 1003,
+			Data: "0",
+		})
+		return
+	}
+	b, err := io.ReadAll(r.Body)
+	if err != nil {
+		rp.h(Resp{
+			Msg:  err.Error(),
+			Code: 1004,
+			Data: "0",
+		})
+		return
+	}
+
+	var data form.MsgBoard
+	if err := json.Unmarshal(b, &data); err != nil {
+		rp.h(Resp{
+			Msg:  err.Error(),
+			Code: 1005,
+			Data: "0",
+		})
+		return
+	}
+
+	if err := validate.Struct(data); err != nil {
+		rp.h(Resp{
+			Msg:  err.Error(),
+			Code: 1006,
+			Data: "0",
+		})
+		return
+	}
+	//if err := filter.LoadWordDict("./dict.txt"); err != nil {
+	//	log.Fatalln("无法读取脏字库文件", err.Error())
+	//}
+	//
+	//data.Evaluate = filter.Replace(data.Evaluate, '*') // 屏蔽一些不友好的留言
+	ol, err := redis.NewRM().UpdateMsgBoard(data)
+	if err != nil {
+		rp.h(Resp{
+			Msg:  err.Error(),
+			Code: 1007,
+			Data: "0",
+		})
+		return
+	}
+
+	rp.h(Resp{
+		Msg:  "ok",
+		Code: 1000,
+		Data: ol,
+	})
+
+}
+
+// handleUserReviews 获取某个场地的所有用户评价
+func handleUserReviews(w http.ResponseWriter, r *http.Request) {
+	var rp = Resp{w: w}
+	if r.Method != http.MethodGet {
+		rp.h(Resp{
+			Msg:  "invalid request",
+			Code: 1001,
+			Data: "0",
+		})
+		return
+	}
+	gid := r.FormValue("gid")
+	uid := r.FormValue("uid")
+	sportKey := r.FormValue("key")
+	if gid == "" || uid == "" || sportKey == "" {
+		rp.h(Resp{
+			Msg:  "invalid parameter",
+			Code: 1002,
+			Data: "0",
+		})
+		return
+	}
+	if err := redis.NewRM().GetWxOpenid(uid); err != nil {
+		rp.h(Resp{
+			Msg:  err.Error(),
+			Code: 1003,
+			Data: "0",
+		})
+		return
+	}
+	ol, err := redis.NewRM().GetMsgBoard(gid, sportKey)
+	if err != nil {
+		rp.h(Resp{
+			Msg:  err.Error(),
+			Code: 1004,
+			Data: "0",
+		})
+		return
+	}
+	rp.h(Resp{
+		Msg:  "ok",
+		Code: 1000,
+		Data: ol,
+	})
+
 }
 
 // handleUpload 上传文件
@@ -137,6 +266,15 @@ func handleUpload(w http.ResponseWriter, r *http.Request) {
 		rp.h(Resp{
 			Msg:  "invalid parameter",
 			Code: 1002,
+			Data: "0",
+		})
+		return
+	}
+
+	if err := redis.NewRM().GetWxOpenid(uid); err != nil {
+		rp.h(Resp{
+			Msg:  err.Error(),
+			Code: 1003,
 			Data: "0",
 		})
 		return
@@ -357,11 +495,20 @@ func handleGetAllSports(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if err := redis.NewRM().GetWxOpenid(uid); err != nil {
+		rp.h(Resp{
+			Msg:  err.Error(),
+			Code: 1003,
+			Data: "0",
+		})
+		return
+	}
+
 	sl, err := redis.NewRM().GetSportList()
 	if err != nil {
 		rp.h(Resp{
 			Msg:  err.Error(),
-			Code: 1003,
+			Code: 1004,
 			Data: "0",
 		})
 		return
@@ -481,11 +628,8 @@ func handleWxLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var wxOpenid struct {
-		Openid string `json:"openid"`
-	}
-
-	if err := json.Unmarshal(b, &wxOpenid); err != nil {
+	var data *form.WxOpenidList
+	if err := json.Unmarshal(b, &data); err != nil {
 		rp.h(Resp{
 			Msg:  err.Error(),
 			Code: 1006,
@@ -494,7 +638,7 @@ func handleWxLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := redis.NewRM().SetWxOpenid(wxOpenid.Openid); err != nil {
+	if err := redis.NewRM().SetWxOpenid(data); err != nil {
 		rp.h(Resp{
 			Msg:  err.Error(),
 			Code: 1007,
@@ -503,8 +647,8 @@ func handleWxLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !openid.NewWhiteList(wxOpenid.Openid).IsWhite() {
-		if err := ddw.NewDDWarn(fmt.Sprintf("用户id：%s，打开了小程序", wxOpenid.Openid)).Send(); err != nil {
+	if !openid.NewWhiteList(data.Openid).IsWhite() {
+		if err := ddw.NewDDWarn(fmt.Sprintf("用户id：%s，打开了小程序", data.Openid)).Send(); err != nil {
 			log.Println(err.Error())
 		}
 	}
@@ -512,7 +656,7 @@ func handleWxLogin(w http.ResponseWriter, r *http.Request) {
 	rp.h(Resp{
 		Msg:  "ok",
 		Code: 1000,
-		Data: wxOpenid.Openid,
+		Data: data,
 	})
 
 }
@@ -606,11 +750,20 @@ func handleCheckAddAddrList(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if err := redis.NewRM().GetWxOpenid(uid); err != nil {
+		rp.h(Resp{
+			Msg:  err.Error(),
+			Code: 1003,
+			Data: "0",
+		})
+		return
+	}
+
 	list, err := redis.NewRM().GetAddrList()
 	if err != nil {
 		rp.h(Resp{
 			Msg:  err.Error(),
-			Code: 1003,
+			Code: 1004,
 			Data: "0",
 		})
 		return
@@ -640,6 +793,14 @@ func handleAddAddrRefuse(w http.ResponseWriter, r *http.Request) {
 		rp.h(Resp{
 			Msg:  "invalid parameter",
 			Code: 1002,
+			Data: "0",
+		})
+		return
+	}
+	if err := redis.NewRM().GetWxOpenid(uid); err != nil {
+		rp.h(Resp{
+			Msg:  err.Error(),
+			Code: 1003,
 			Data: "0",
 		})
 		return
@@ -715,11 +876,20 @@ func handleAddAddrPass(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if err := redis.NewRM().GetWxOpenid(uid); err != nil {
+		rp.h(Resp{
+			Msg:  err.Error(),
+			Code: 1003,
+			Data: "0",
+		})
+		return
+	}
+
 	b, err := io.ReadAll(r.Body)
 	if err != nil {
 		rp.h(Resp{
 			Msg:  err.Error(),
-			Code: 1003,
+			Code: 1004,
 			Data: "0",
 		})
 		return
@@ -732,7 +902,7 @@ func handleAddAddrPass(w http.ResponseWriter, r *http.Request) {
 	if err := json.Unmarshal(b, &data); err != nil {
 		rp.h(Resp{
 			Msg:  err.Error(),
-			Code: 1004,
+			Code: 1005,
 			Data: "0",
 		})
 		return
@@ -741,7 +911,7 @@ func handleAddAddrPass(w http.ResponseWriter, r *http.Request) {
 	if err := validate.Struct(data); err != nil {
 		rp.h(Resp{
 			Msg:  err.Error(),
-			Code: 1005,
+			Code: 1006,
 			Data: "0",
 		})
 		return
@@ -751,7 +921,7 @@ func handleAddAddrPass(w http.ResponseWriter, r *http.Request) {
 	if _, err := redis.NewRM().Update(data.City, data.Id); err != nil {
 		rp.h(Resp{
 			Msg:  err.Error(),
-			Code: 1006,
+			Code: 1007,
 			Data: "0",
 		})
 		return
@@ -761,7 +931,7 @@ func handleAddAddrPass(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		rp.h(Resp{
 			Msg:  err.Error(),
-			Code: 1007,
+			Code: 1008,
 			Data: "0",
 		})
 		return
