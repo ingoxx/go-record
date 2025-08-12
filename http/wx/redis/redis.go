@@ -321,6 +321,8 @@ func (r *RM) SetWxOpenid(wo *form.WxOpenidList) (*form.WxOpenidList, error) {
 		if err := r.Set(WxOPenIdKey, b, 0); err != nil {
 			return fd, err
 		}
+
+		return wo, nil
 	}
 
 	return fd, nil

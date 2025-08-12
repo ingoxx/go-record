@@ -95,7 +95,7 @@ var (
 )
 
 func main() {
-	log.Println("version: v1.1.91")
+	log.Println("version: v1.1.93")
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/ws", handleConnections)
@@ -637,8 +637,8 @@ func handleWxLogin(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-
-	if err := redis.NewRM().SetWxOpenid(data); err != nil {
+	wxOpenid, err := redis.NewRM().SetWxOpenid(data)
+	if err != nil {
 		rp.h(Resp{
 			Msg:  err.Error(),
 			Code: 1007,
@@ -654,9 +654,10 @@ func handleWxLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	rp.h(Resp{
-		Msg:  "ok",
-		Code: 1000,
-		Data: data,
+		Msg:       "ok",
+		Code:      1000,
+		Data:      wxOpenid.Openid,
+		OtherData: wxOpenid,
 	})
 
 }
