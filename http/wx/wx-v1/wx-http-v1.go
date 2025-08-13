@@ -95,7 +95,7 @@ var (
 )
 
 func main() {
-	log.Println("version: v1.2.8")
+	log.Println("version: v1.2.9")
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/ws", handleConnections)

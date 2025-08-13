@@ -627,14 +627,14 @@ func (r *RM) GetMsgBoard(gid, sportKey string) ([]*form.MsgBoard, error) {
 	}
 
 	if result == "" {
-		nd := r.updateImg(board)
+		nd := r.updateImg(board, gid)
 		return nd, nil
 	}
 
 	if err := json.Unmarshal([]byte(result), &data); err != nil {
 		return data, err
 	}
-	nd := r.updateImg(board)
+	nd := r.updateImg(board, gid)
 	data = append(data, nd...)
 
 	return data, nil
@@ -649,6 +649,11 @@ func (r *RM) UpdateMsgBoard(mb *form.MsgBoard, sportKey string) ([]*form.MsgBoar
 		return data, err
 	}
 
+	board, err := eva.NewSportType(sportKey).DefaultEvaBoard()
+	if err != nil {
+		return data, err
+	}
+
 	if result == "" {
 		data = append(data, mb)
 		b, err := json.Marshal(&data)
@@ -659,6 +664,9 @@ func (r *RM) UpdateMsgBoard(mb *form.MsgBoard, sportKey string) ([]*form.MsgBoar
 		if err := r.Set(gn, b, time.Second*time.Duration(86400)); err != nil {
 			return data, err
 		}
+
+		nd := r.updateImg(board, mb.GroupId)
+		data = append(data, nd...)
 
 		return data, nil
 	}
@@ -677,22 +685,18 @@ func (r *RM) UpdateMsgBoard(mb *form.MsgBoard, sportKey string) ([]*form.MsgBoar
 		return data, err
 	}
 
-	board, err := eva.NewSportType(sportKey).DefaultEvaBoard()
-	if err != nil {
-		return data, err
-	}
-
-	nd := r.updateImg(board)
+	nd := r.updateImg(board, mb.GroupId)
 	data = append(data, nd...)
 
 	return data, nil
 }
 
-func (r *RM) updateImg(data []*form.MsgBoard) []*form.MsgBoard {
+func (r *RM) updateImg(data []*form.MsgBoard, gid string) []*form.MsgBoard {
 	m1 := 1001
 	m2 := 2904
 	for _, v := range data {
 		v.Img = fmt.Sprintf("%s/%d.png", imgUrl, rand.IntN(m2-m1+1)+m1)
+		v.GroupId = gid
 	}
 
 	return data
