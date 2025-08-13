@@ -95,7 +95,7 @@ var (
 )
 
 func main() {
-	log.Println("version: v1.2.6")
+	log.Println("version: v1.2.8")
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/ws", handleConnections)
@@ -122,7 +122,7 @@ func main() {
 	log.Fatal(http.ListenAndServe(":11806", mux))
 }
 
-// handleUserLikedReviews 用户点赞留言
+// handleUserLikedReviews 用户点赞
 func handleUserLikedReviews(w http.ResponseWriter, r *http.Request) {
 	var rp = Resp{w: w}
 	if r.Method != http.MethodPost {
@@ -310,12 +310,12 @@ func handleGetUserReviews(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
+
 	rp.h(Resp{
 		Msg:  "ok",
 		Code: 1000,
 		Data: ol,
 	})
-
 }
 
 // handleWxUpload 上传文件

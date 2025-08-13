@@ -60,4 +60,5 @@ type MsgBoard struct {
 	Evaluate string `json:"evaluate" validate:"required"`
 	Time     string `json:"time" validate:"required"`
 	Like     int    `json:"like"`
+	IsLike   bool   `json:"is_like"`
 }
