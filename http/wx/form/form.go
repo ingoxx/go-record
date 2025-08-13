@@ -59,4 +59,5 @@ type MsgBoard struct {
 	Img      string `json:"img" validate:"required"`
 	Evaluate string `json:"evaluate" validate:"required"`
 	Time     string `json:"time" validate:"required"`
+	Like     int    `json:"like"`
 }

@@ -20,6 +20,7 @@ func (s SportType) DefaultEvaBoard() ([]*form.MsgBoard, error) {
 	var evaData []*form.MsgBoard
 	if s.Name == "bks" {
 		data = `[
+		  {"group_id": "aaa-bbb-ccc-ddd-eee", "user": "打波啊", "evaluate": "我去，你打球怎么还带个扳手？", "img": "https://mp-578c2584-f82c-45e7-9d53-51332c711501.cdn.bspapp.com/wx-fbs/wx_4.JPG", "time": "2024-04-05 16:32:15"},
 		  {"group_id": "aaa-bbb-ccc-ddd-eee", "user": "广州刘得华", "evaluate": "这里打球得掉层皮才能走", "img": "https://mp-578c2584-f82c-45e7-9d53-51332c711501.cdn.bspapp.com/wx-fbs/wx_1.JPG", "time": "2024-04-05 16:32:15"},
 		  {"group_id": "aaa-bbb-ccc-ddd-eee", "user": "马路傻手", "evaluate": "打球5分钟，吵架10分钟", "img": "https://mp-578c2584-f82c-45e7-9d53-51332c711501.cdn.bspapp.com/wx-fbs/wx_3.JPG", "time": "2024-04-05 16:32:15"},
 		  {"group_id": "aaa-bbb-ccc-ddd-eee", "user": "你笑个锤子", "evaluate": "打架为啥带个球？", "img": "https://mp-578c2584-f82c-45e7-9d53-51332c711501.cdn.bspapp.com/wx-fbs/wx_4.JPG", "time": "2024-04-05 16:32:15"},
@@ -29,6 +30,7 @@ func (s SportType) DefaultEvaBoard() ([]*form.MsgBoard, error) {
 
 	if s.Name == "bms" {
 		data = `[
+		{"group_id": "aaa-bbb-ccc-ddd-eee", "user": "jkasd", "evaluate": "来个人吧", "img": "https://mp-578c2584-f82c-45e7-9d53-51332c711501.cdn.bspapp.com/profile2/2147.png", "time": "2024-04-05 16:32:15"},
 		  {"group_id": "aaa-bbb-ccc-ddd-eee", "user": "阿毛", "evaluate": "来个高手0.0", "img": "https://mp-578c2584-f82c-45e7-9d53-51332c711501.cdn.bspapp.com/profile2/2147.png", "time": "2024-04-05 16:32:15"},
 		{"group_id": "aaa-bbb-ccc-ddd-eee", "user": "16888", "evaluate": "环境还行，就是夏天太热", "img": "https://mp-578c2584-f82c-45e7-9d53-51332c711501.cdn.bspapp.com/profile2/2146.png", "time": "2024-04-05 16:32:15"}
 		]`
@@ -36,7 +38,7 @@ func (s SportType) DefaultEvaBoard() ([]*form.MsgBoard, error) {
 
 	if s.Name == "fbs" {
 		data = `[
-		  {"group_id": "aaa-bbb-ccc-ddd-eee", "user": "上海吴燕组", "evaluate": "差点被踢爆l_l", "img": "https://mp-578c2584-f82c-45e7-9d53-51332c711501.cdn.bspapp.com/profile2/2145.png", "time": "2024-04-05 16:32:15"}，
+		  {"group_id": "aaa-bbb-ccc-ddd-eee", "user": "上海吴燕组", "evaluate": "差点被踢爆l_l", "img": "https://mp-578c2584-f82c-45e7-9d53-51332c711501.cdn.bspapp.com/profile2/2145.png", "time": "2024-04-05 16:32:15"},
 			{ "group_id": "aaa-bbb-ccc-ddd-eee", "user": "门将界的漏勺", "evaluate": "一场比赛丢了八个球，对手都不好意思庆祝了", "img": "https://mmbiz.qpic.cn/mmbiz/icTdbqWNOwNRna42FI242Lcia07jQodd2FJGIYQfG0LAJGFxM4FbnQP6yfMxBgJ0F3YRqJCJ1aPAK2dQagdusBZg/0", "time": "2024-04-05 16:32:15"},
 		  { "group_id": "aaa-bbb-ccc-ddd-eee", "user": "爱踩球的阿斌", "evaluate": "想带球过人结果自己被球绊倒，全场掌声送给我", "img": "https://mmbiz.qpic.cn/mmbiz/icTdbqWNOwNRna42FI242Lcia07jQodd2FJGIYQfG0LAJGFxM4FbnQP6yfMxBgJ0F3YRqJCJ1aPAK2dQagdusBZg/0", "time": "2024-04-05 16:32:15" },
 		  { "group_id": "aaa-bbb-ccc-ddd-eee", "user": "边路小旋风", "evaluate": "速度很快，就是球留在原地没跟上", "img": "https://mmbiz.qpic.cn/mmbiz/icTdbqWNOwNRna42FI242Lcia07jQodd2FJGIYQfG0LAJGFxM4FbnQP6yfMxBgJ0F3YRqJCJ1aPAK2dQagdusBZg/0", "time": "2024-04-05 16:32:15"},
@@ -48,6 +50,7 @@ func (s SportType) DefaultEvaBoard() ([]*form.MsgBoard, error) {
 	if s.Name == "sws" {
 		data = `[
 		  {"group_id": "aaa-bbb-ccc-ddd-eee", "user": "深圳郭富城", "evaluate": "蛙泳太难了l_l", "img": "https://mmbiz.qpic.cn/mmbiz/icTdbqWNOwNRna42FI242Lcia07jQodd2FJGIYQfG0LAJGFxM4FbnQP6yfMxBgJ0F3YRqJCJ1aPAK2dQagdusBZg/0", "time": "2024-04-05 16:32:15"},
+			{"group_id": "aaa-bbb-ccc-ddd-eee", "user": "游泳别放屁", "evaluate": "恳求各位不要在泳池里边放屁拉屎!!!", "img": "https://mmbiz.qpic.cn/mmbiz/icTdbqWNOwNRna42FI242Lcia07jQodd2FJGIYQfG0LAJGFxM4FbnQP6yfMxBgJ0F3YRqJCJ1aPAK2dQagdusBZg/0", "time": "2024-04-05 16:32:15"},
 			{"group_id": "aaa-bbb-ccc-ddd-eee", "user": "666", "evaluate": "环境还行，水质也干净", "img": "https://mmbiz.qpic.cn/mmbiz/icTdbqWNOwNRna42FI242Lcia07jQodd2FJGIYQfG0LAJGFxM4FbnQP6yfMxBgJ0F3YRqJCJ1aPAK2dQagdusBZg/0", "time": "2024-04-05 16:32:15"}
 		]`
 	}
@@ -64,6 +67,7 @@ func (s SportType) DefaultEvaBoard() ([]*form.MsgBoard, error) {
 	}
 	if s.Name == "gos" {
 		data = `[
+			{"group_id": "aaa-bbb-ccc-ddd-eee", "user": "猴哥", "evaluate": "抽了一下午的空气", "img": "https://mmbiz.qpic.cn/mmbiz/icTdbqWNOwNRna42FI242Lcia07jQodd2FJGIYQfG0LAJGFxM4FbnQP6yfMxBgJ0F3YRqJCJ1aPAK2dQagdusBZg/0", "time": "2024-04-05 16:32:15"},
 		  {"group_id": "aaa-bbb-ccc-ddd-eee", "user": "高尔夫穷人", "evaluate": "玩不起l_l", "img": "https://mmbiz.qpic.cn/mmbiz/icTdbqWNOwNRna42FI242Lcia07jQodd2FJGIYQfG0LAJGFxM4FbnQP6yfMxBgJ0F3YRqJCJ1aPAK2dQagdusBZg/0", "time": "2024-04-05 16:32:15"},
 			{"group_id": "aaa-bbb-ccc-ddd-eee", "user": "222", "evaluate": "还行吧l_l", "img": "https://mmbiz.qpic.cn/mmbiz/icTdbqWNOwNRna42FI242Lcia07jQodd2FJGIYQfG0LAJGFxM4FbnQP6yfMxBgJ0F3YRqJCJ1aPAK2dQagdusBZg/0", "time": "2024-04-05 16:32:15"}
 		]`

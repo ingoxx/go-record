@@ -95,7 +95,7 @@ var (
 )
 
 func main() {
-	log.Println("version: v1.1.93")
+	log.Println("version: v1.2.6")
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/ws", handleConnections)
@@ -110,9 +110,10 @@ func main() {
 	mux.HandleFunc("/show-square", handleShowSportsSquare)
 	mux.HandleFunc("/wx-login", handleWxLogin)
 	mux.HandleFunc("/get-all-sports", handleGetAllSports)
-	mux.HandleFunc("/wx-upload", handleUpload)
-	mux.HandleFunc("/get-user-reviews", handleUserReviews)
+	mux.HandleFunc("/wx-upload", handleWxUpload)
+	mux.HandleFunc("/get-user-reviews", handleGetUserReviews)
 	mux.HandleFunc("/update-sport-reviews", handleUpdateUserReviews)
+	mux.HandleFunc("/user-liked-reviews", handleUserLikedReviews)
 
 	// 启动广播处理器
 	go handleBroadcast()
@@ -121,8 +122,8 @@ func main() {
 	log.Fatal(http.ListenAndServe(":11806", mux))
 }
 
-// handleUpdateUserReviews 用户提交对某个场地的评价
-func handleUpdateUserReviews(w http.ResponseWriter, r *http.Request) {
+// handleUserLikedReviews 用户点赞留言
+func handleUserLikedReviews(w http.ResponseWriter, r *http.Request) {
 	var rp = Resp{w: w}
 	if r.Method != http.MethodPost {
 		rp.h(Resp{
@@ -133,7 +134,8 @@ func handleUpdateUserReviews(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	uid := r.FormValue("uid")
-	if uid == "" {
+	sportKey := r.FormValue("key")
+	if uid == "" && sportKey == "" {
 		rp.h(Resp{
 			Msg:  "invalid parameter",
 			Code: 1002,
@@ -160,7 +162,7 @@ func handleUpdateUserReviews(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var data form.MsgBoard
+	var data *form.MsgBoard
 	if err := json.Unmarshal(b, &data); err != nil {
 		rp.h(Resp{
 			Msg:  err.Error(),
@@ -178,12 +180,80 @@ func handleUpdateUserReviews(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	//if err := filter.LoadWordDict("./dict.txt"); err != nil {
-	//	log.Fatalln("无法读取脏字库文件", err.Error())
-	//}
-	//
-	//data.Evaluate = filter.Replace(data.Evaluate, '*') // 屏蔽一些不友好的留言
-	ol, err := redis.NewRM().UpdateMsgBoard(data)
+
+}
+
+// handleUpdateUserReviews 用户提交对某个场地的评价
+func handleUpdateUserReviews(w http.ResponseWriter, r *http.Request) {
+	var rp = Resp{w: w}
+	if r.Method != http.MethodPost {
+		rp.h(Resp{
+			Msg:  "invalid request",
+			Code: 1001,
+			Data: "0",
+		})
+		return
+	}
+	uid := r.FormValue("uid")
+	sportKey := r.FormValue("key")
+	if uid == "" && sportKey == "" {
+		rp.h(Resp{
+			Msg:  "invalid parameter",
+			Code: 1002,
+			Data: "0",
+		})
+		return
+	}
+
+	if err := redis.NewRM().GetWxOpenid(uid); err != nil {
+		rp.h(Resp{
+			Msg:  err.Error(),
+			Code: 1003,
+			Data: "0",
+		})
+		return
+	}
+	b, err := io.ReadAll(r.Body)
+	if err != nil {
+		rp.h(Resp{
+			Msg:  err.Error(),
+			Code: 1004,
+			Data: "0",
+		})
+		return
+	}
+
+	var data *form.MsgBoard
+	if err := json.Unmarshal(b, &data); err != nil {
+		rp.h(Resp{
+			Msg:  err.Error(),
+			Code: 1005,
+			Data: "0",
+		})
+		return
+	}
+
+	if err := validate.Struct(data); err != nil {
+		rp.h(Resp{
+			Msg:  err.Error(),
+			Code: 1006,
+			Data: "0",
+		})
+		return
+	}
+
+	if !openid.NewWhiteList(data.User).IsWhite() {
+		if err := ddw.NewDDWarn(fmt.Sprintf("用户: %s, 群组：%s, 提交了评价：%s\n", data.User, data.GroupId, data.Evaluate)).Send(); err != nil {
+			log.Println(err.Error())
+		}
+	}
+
+	if err := filter.LoadWordDict("./dict.txt"); err != nil {
+		log.Fatalln("无法读取脏字库文件", err.Error())
+	}
+
+	data.Evaluate = filter.Replace(data.Evaluate, '*') // 屏蔽一些不友好的留言
+	ol, err := redis.NewRM().UpdateMsgBoard(data, sportKey)
 	if err != nil {
 		rp.h(Resp{
 			Msg:  err.Error(),
@@ -201,8 +271,8 @@ func handleUpdateUserReviews(w http.ResponseWriter, r *http.Request) {
 
 }
 
-// handleUserReviews 获取某个场地的所有用户评价
-func handleUserReviews(w http.ResponseWriter, r *http.Request) {
+// handleGetUserReviews 获取某个场地的所有用户评价
+func handleGetUserReviews(w http.ResponseWriter, r *http.Request) {
 	var rp = Resp{w: w}
 	if r.Method != http.MethodGet {
 		rp.h(Resp{
@@ -248,8 +318,8 @@ func handleUserReviews(w http.ResponseWriter, r *http.Request) {
 
 }
 
-// handleUpload 上传文件
-func handleUpload(w http.ResponseWriter, r *http.Request) {
+// handleWxUpload 上传文件
+func handleWxUpload(w http.ResponseWriter, r *http.Request) {
 	var rp = Resp{w: w}
 	if r.Method != http.MethodPost {
 		rp.h(Resp{
@@ -329,6 +399,12 @@ func handleUpload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if !openid.NewWhiteList(uid).IsWhite() {
+		if err := ddw.NewDDWarn(fmt.Sprintf("用户: %s, 上传了头像\n", uid)).Send(); err != nil {
+			log.Println(err.Error())
+		}
+	}
+
 	rp.h(Resp{
 		Msg:  "ok",
 		Code: 1000,
@@ -395,6 +471,12 @@ func handleUserJoinGroup(w http.ResponseWriter, r *http.Request) {
 			Data: "0",
 		})
 		return
+	}
+
+	if !openid.NewWhiteList(data.User).IsWhite() {
+		if err := ddw.NewDDWarn(fmt.Sprintf("用户: %s, 群组：%s, 用户加入了组队\n", data.User, data.GroupId)).Send(); err != nil {
+			log.Println(err.Error())
+		}
 	}
 
 	ol, err := redis.NewRM().JoinGroupUpdate(data)

@@ -25,6 +25,7 @@ var (
 	joinGroupKey = "join"
 	evaKey       = "eva"
 	defaultImg   = "https://mp-578c2584-f82c-45e7-9d53-51332c711501.cdn.bspapp.com/wx-fbs/bk3.svg"
+	imgUrl       = "https://ai.anythingai.online/static/profile3"
 	//cusAddrKey   = "group-id-cus"
 )
 
@@ -620,21 +621,28 @@ func (r *RM) GetMsgBoard(gid, sportKey string) ([]*form.MsgBoard, error) {
 		return data, err
 	}
 
-	if result == "" {
-		board, err := eva.NewSportType(sportKey).DefaultEvaBoard()
-		if err == nil {
-			nd := r.updateImg(board)
-			return nd, nil
-		}
-		return make([]*form.MsgBoard, 0), nil
+	board, err := eva.NewSportType(sportKey).DefaultEvaBoard()
+	if err != nil {
+		return data, err
 	}
+
+	if result == "" {
+		nd := r.updateImg(board)
+		return nd, nil
+	}
+
+	if err := json.Unmarshal([]byte(result), &data); err != nil {
+		return data, err
+	}
+	nd := r.updateImg(board)
+	data = append(data, nd...)
 
 	return data, nil
 }
 
 // UpdateMsgBoard 用户提交对谋个场地的评价
-func (r *RM) UpdateMsgBoard(mb form.MsgBoard) ([]form.MsgBoard, error) {
-	var data []form.MsgBoard
+func (r *RM) UpdateMsgBoard(mb *form.MsgBoard, sportKey string) ([]*form.MsgBoard, error) {
+	var data []*form.MsgBoard
 	gn := fmt.Sprintf("%s_%s", evaKey, mb.GroupId)
 	result, err := r.Get(gn)
 	if err != nil && !errors.Is(err, redis.Nil) {
@@ -669,6 +677,14 @@ func (r *RM) UpdateMsgBoard(mb form.MsgBoard) ([]form.MsgBoard, error) {
 		return data, err
 	}
 
+	board, err := eva.NewSportType(sportKey).DefaultEvaBoard()
+	if err != nil {
+		return data, err
+	}
+
+	nd := r.updateImg(board)
+	data = append(data, nd...)
+
 	return data, nil
 }
 
@@ -676,7 +692,7 @@ func (r *RM) updateImg(data []*form.MsgBoard) []*form.MsgBoard {
 	m1 := 1001
 	m2 := 2904
 	for _, v := range data {
-		v.Img = fmt.Sprintf("https://mp-578c2584-f82c-45e7-9d53-51332c711501.cdn.bspapp.com/profile3/%d.png", rand.IntN(m2-m1+1)+m1)
+		v.Img = fmt.Sprintf("%s/%d.png", imgUrl, rand.IntN(m2-m1+1)+m1)
 	}
 
 	return data
@@ -685,5 +701,10 @@ func (r *RM) updateImg(data []*form.MsgBoard) []*form.MsgBoard {
 func (r *RM) generateRandomImg() string {
 	m1 := 1001
 	m2 := 2904
-	return fmt.Sprintf("https://mp-578c2584-f82c-45e7-9d53-51332c711501.cdn.bspapp.com/profile3/%d.png", rand.IntN(m2-m1+1)+m1)
+	return fmt.Sprintf("%s/%d.png", imgUrl, rand.IntN(m2-m1+1)+m1)
+}
+
+// UserLikedReviews 用户点赞留言
+func (r *RM) UserLikedReviews() ([]*form.MsgBoard, error) {
+	return nil, nil
 }
