@@ -54,11 +54,13 @@ type JoinGroupUsers struct {
 }
 
 type MsgBoard struct {
-	GroupId  string `json:"group_id" validate:"required"`
-	User     string `json:"user" validate:"required"`
-	Img      string `json:"img" validate:"required"`
-	Evaluate string `json:"evaluate" validate:"required"`
-	Time     string `json:"time" validate:"required"`
-	Like     int    `json:"like"`
-	IsLike   bool   `json:"is_like"`
+	LikeUsers  []string `json:"like_users"` // 点赞这条评价的所有用户
+	GroupId    string   `json:"group_id" validate:"required"`
+	User       string   `json:"user" validate:"required"` // 写下评价的用户或者是点赞这条评价的用户
+	Img        string   `json:"img" validate:"required"`
+	Evaluate   string   `json:"evaluate" validate:"required"`
+	EvaluateId string   `json:"evaluate_id"`
+	Time       string   `json:"time" validate:"required"`
+	Like       int      `json:"like"`
+	IsLike     bool     `json:"is_like"`
 }

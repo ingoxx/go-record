@@ -422,16 +422,16 @@ func (r *RM) VerifyWxUser(hash string) (string, error) {
 func (r *RM) GetSportList() ([]form.SportList, error) {
 	var data []form.SportList
 	sports := `[
-		{"name": "篮球场", "key": "bks", "checked": false, "icon": "🏀", "img": "https://mp-578c2584-f82c-45e7-9d53-51332c711501.cdn.bspapp.com/wx-fbs/main-bk.jpg"},
-		{"name": "游泳馆", "key": "sws", "checked": false, "icon": "🏊", "img": "https://mp-578c2584-f82c-45e7-9d53-51332c711501.cdn.bspapp.com/wx-fbs/swim.png"},
-		{"name": "羽毛球馆", "key": "bms", "checked": false, "icon": "🏸", "img": "https://mp-578c2584-f82c-45e7-9d53-51332c711501.cdn.bspapp.com/wx-fbs/badminton.png"},
-		{"name": "足球场", "key": "fbs", "checked": false, "icon": "⚽", "img": "https://mp-578c2584-f82c-45e7-9d53-51332c711501.cdn.bspapp.com/wx-fbs/football.png"},
-		{"name": "网球场", "key": "tns", "checked": false, "icon": "🎾", "img": "https://mp-578c2584-f82c-45e7-9d53-51332c711501.cdn.bspapp.com/wx-fbs/tennis.png"},
-		{"name": "高尔夫球场", "key": "gos", "checked": false, "icon": "🏌️", "img": "https://mp-578c2584-f82c-45e7-9d53-51332c711501.cdn.bspapp.com/wx-fbs/golf.png"},
-		{"name": "滑雪场", "key": "hxc", "checked": false, "icon": "⛷️", "img": "https://mp-578c2584-f82c-45e7-9d53-51332c711501.cdn.bspapp.com/wx-fbs/hxc.png"},
-		{"name": "瑜伽馆", "key": "yjg", "checked": false, "icon": "🧘", "img": "https://mp-578c2584-f82c-45e7-9d53-51332c711501.cdn.bspapp.com/wx-fbs/yjg.png"},
-		{"name": "跆拳道馆", "key": "tqd", "checked": false, "icon": "🥋", "img": "https://mp-578c2584-f82c-45e7-9d53-51332c711501.cdn.bspapp.com/wx-fbs/tqdg.png"},
-		{"name": "健身房", "key": "gym", "checked": false, "icon": "🏋️‍♂️", "img": "https://mp-578c2584-f82c-45e7-9d53-51332c711501.cdn.bspapp.com/wx-fbs/gym.png"}
+		{"name": "篮球场", "key": "bks", "checked": false, "icon": "🏀", "img": "https://ai.anythingai.online/static/profile3/main-bk.jpg"},
+		{"name": "游泳馆", "key": "sws", "checked": false, "icon": "🏊", "img": "https://ai.anythingai.online/static/profile3/swim.png"},
+		{"name": "羽毛球馆", "key": "bms", "checked": false, "icon": "🏸", "img": "https://ai.anythingai.online/static/profile3/badminton.png"},
+		{"name": "足球场", "key": "fbs", "checked": false, "icon": "⚽", "img": "https://ai.anythingai.online/static/profile3/football.png"},
+		{"name": "网球场", "key": "tns", "checked": false, "icon": "🎾", "img": "https://ai.anythingai.online/static/profile3/tennis.png"},
+		{"name": "高尔夫球场", "key": "gos", "checked": false, "icon": "🏌️", "img": "https://ai.anythingai.online/static/profile3/golf.png"},
+		{"name": "滑雪场", "key": "hxc", "checked": false, "icon": "⛷️", "img": "https://ai.anythingai.online/static/profile3/ski.png"},
+		{"name": "瑜伽馆", "key": "yjg", "checked": false, "icon": "🧘", "img": "https://ai.anythingai.online/static/profile3/yoga.png"},
+		{"name": "跆拳道馆", "key": "tqd", "checked": false, "icon": "🥋", "img": "https://ai.anythingai.online/static/profile3/taekwondo.png"},
+		{"name": "健身房", "key": "gym", "checked": false, "icon": "🏋️‍♂️", "img": "https://ai.anythingai.online/static/profile3/gym.png"}
 	]`
 	if err := json.Unmarshal([]byte(sports), &data); err != nil {
 		return data, err
@@ -621,21 +621,29 @@ func (r *RM) GetMsgBoard(gid, sportKey string) ([]*form.MsgBoard, error) {
 		return data, err
 	}
 
-	board, err := eva.NewSportType(sportKey).DefaultEvaBoard()
-	if err != nil {
-		return data, err
-	}
-
 	if result == "" {
+		board, err := eva.NewSportType(sportKey).DefaultEvaBoard()
+		if err != nil {
+			return data, err
+		}
+
 		nd := r.updateImg(board, gid)
-		return nd, nil
+		data = append(data, nd...)
+		b, err := json.Marshal(&data)
+		if err != nil {
+			return data, err
+		}
+
+		if err := r.Set(gn, b, time.Second*time.Duration(86400)); err != nil {
+			return data, err
+		}
+
+		return data, nil
 	}
 
 	if err := json.Unmarshal([]byte(result), &data); err != nil {
 		return data, err
 	}
-	nd := r.updateImg(board, gid)
-	data = append(data, nd...)
 
 	return data, nil
 }
@@ -649,13 +657,14 @@ func (r *RM) UpdateMsgBoard(mb *form.MsgBoard, sportKey string) ([]*form.MsgBoar
 		return data, err
 	}
 
-	board, err := eva.NewSportType(sportKey).DefaultEvaBoard()
-	if err != nil {
-		return data, err
-	}
-
 	if result == "" {
+		board, err := eva.NewSportType(sportKey).DefaultEvaBoard()
+		if err != nil {
+			return data, err
+		}
+		nd := r.updateImg(board, mb.GroupId)
 		data = append(data, mb)
+		data = append(data, nd...)
 		b, err := json.Marshal(&data)
 		if err != nil {
 			return data, err
@@ -665,14 +674,15 @@ func (r *RM) UpdateMsgBoard(mb *form.MsgBoard, sportKey string) ([]*form.MsgBoar
 			return data, err
 		}
 
-		nd := r.updateImg(board, mb.GroupId)
-		data = append(data, nd...)
-
 		return data, nil
 	}
 
 	if err := json.Unmarshal([]byte(result), &data); err != nil {
 		return data, err
+	}
+
+	if len(mb.LikeUsers) == 0 {
+		mb.LikeUsers = make([]string, 0)
 	}
 
 	data = append(data, mb)
@@ -685,9 +695,6 @@ func (r *RM) UpdateMsgBoard(mb *form.MsgBoard, sportKey string) ([]*form.MsgBoar
 		return data, err
 	}
 
-	nd := r.updateImg(board, mb.GroupId)
-	data = append(data, nd...)
-
 	return data, nil
 }
 
@@ -697,6 +704,9 @@ func (r *RM) updateImg(data []*form.MsgBoard, gid string) []*form.MsgBoard {
 	for _, v := range data {
 		v.Img = fmt.Sprintf("%s/%d.png", imgUrl, rand.IntN(m2-m1+1)+m1)
 		v.GroupId = gid
+		if len(v.LikeUsers) == 0 {
+			v.LikeUsers = make([]string, 0)
+		}
 	}
 
 	return data
@@ -709,6 +719,82 @@ func (r *RM) generateRandomImg() string {
 }
 
 // UserLikedReviews 用户点赞留言
-func (r *RM) UserLikedReviews() ([]*form.MsgBoard, error) {
-	return nil, nil
+func (r *RM) UserLikedReviews(mb *form.MsgBoard, sportKey string) ([]*form.MsgBoard, error) {
+	var data []*form.MsgBoard
+	gn := fmt.Sprintf("%s_%s", evaKey, mb.GroupId)
+	result, err := r.Get(gn)
+	if err != nil && !errors.Is(err, redis.Nil) {
+		return data, err
+	}
+
+	if result == "" {
+		board, err := eva.NewSportType(sportKey).DefaultEvaBoard()
+		if err != nil {
+			return data, err
+		}
+
+		nd := r.updateImg(board, mb.GroupId)
+		ndd := r.updateLike(nd, mb)
+		data = append(data, ndd...)
+		b, err := json.Marshal(&data)
+		if err != nil {
+			return data, err
+		}
+
+		if err := r.Set(gn, b, time.Second*time.Duration(86400)); err != nil {
+			return data, err
+		}
+
+		return data, nil
+	}
+
+	if err := json.Unmarshal([]byte(result), &data); err != nil {
+		return data, err
+	}
+
+	nd := r.updateLike(data, mb)
+
+	b, err := json.Marshal(&nd)
+	if err != nil {
+		return data, err
+	}
+
+	if err := r.Set(gn, b, 0); err != nil {
+		return data, err
+	}
+
+	return nd, nil
+}
+
+func (r *RM) updateLike(data []*form.MsgBoard, mb *form.MsgBoard) []*form.MsgBoard {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	for _, v := range data {
+		if v.EvaluateId == mb.EvaluateId {
+			if mb.IsLike {
+				v.Like += 1
+				v.LikeUsers = append(v.LikeUsers, mb.User)
+			} else {
+				if v.Like > 0 {
+					v.Like -= 1
+
+				}
+				v.LikeUsers = r.updateLikeUsers(v.LikeUsers, mb.User)
+			}
+			break
+		}
+	}
+
+	return data
+}
+
+func (r *RM) updateLikeUsers(u []string, uid string) []string {
+	for i, v := range u {
+		if v == uid {
+			return append(u[:i], u[i+1:]...)
+		}
+	}
+
+	return u
 }

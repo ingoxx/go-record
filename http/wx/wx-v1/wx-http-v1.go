@@ -95,7 +95,7 @@ var (
 )
 
 func main() {
-	log.Println("version: v1.2.9")
+	log.Println("version: v1.2.18")
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/ws", handleConnections)
@@ -152,6 +152,7 @@ func handleUserLikedReviews(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
+
 	b, err := io.ReadAll(r.Body)
 	if err != nil {
 		rp.h(Resp{
@@ -180,6 +181,28 @@ func handleUserLikedReviews(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
+
+	if !openid.NewWhiteList(data.User).IsWhite() {
+		if err := ddw.NewDDWarn(fmt.Sprintf("用户: %s, \n群组：%s, \n点赞了评价：%s\n", data.User, data.GroupId, data.Evaluate)).Send(); err != nil {
+			log.Println(err.Error())
+		}
+	}
+
+	ol, err := redis.NewRM().UserLikedReviews(data, sportKey)
+	if err != nil {
+		rp.h(Resp{
+			Msg:  err.Error(),
+			Code: 1007,
+			Data: "0",
+		})
+		return
+	}
+
+	rp.h(Resp{
+		Msg:  "ok",
+		Code: 1000,
+		Data: ol,
+	})
 
 }
 
@@ -243,7 +266,7 @@ func handleUpdateUserReviews(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if !openid.NewWhiteList(data.User).IsWhite() {
-		if err := ddw.NewDDWarn(fmt.Sprintf("用户: %s, 群组：%s, 提交了评价：%s\n", data.User, data.GroupId, data.Evaluate)).Send(); err != nil {
+		if err := ddw.NewDDWarn(fmt.Sprintf("用户: %s, \n群组：%s, \n提交了评价：%s\n", data.User, data.GroupId, data.Evaluate)).Send(); err != nil {
 			log.Println(err.Error())
 		}
 	}
