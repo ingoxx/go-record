@@ -21,8 +21,9 @@ type PassAddrReqForm struct {
 }
 
 type WxOpenidList struct {
-	Openid string `json:"openid"`
-	Img    string `json:"img"`
+	Openid   string `json:"openid"`
+	Img      string `json:"img"`
+	NickName string `json:"nick_name"`
 }
 
 type Sports struct {

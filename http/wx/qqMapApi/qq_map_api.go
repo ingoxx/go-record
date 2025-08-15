@@ -97,7 +97,7 @@ func (t TxMapApi) KeyWordSearch() ([]SaveInRedis, error) {
 				Lng:    v.Location.Lng,
 				Title:  v.Title,
 				Tags:   []string{v.Title},
-				Img:    "https://mp-578c2584-f82c-45e7-9d53-51332c711501.cdn.bspapp.com/wx-fbs/bk3.svg",
+				Img:    "",
 			}
 			sd = append(sd, sdd)
 		}

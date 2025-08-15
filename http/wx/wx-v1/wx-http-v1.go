@@ -31,7 +31,7 @@ var (
 	// 脏字库过滤器
 	filter     = sensitive.New()
 	onlineKey  = "online"
-	uploadPath = "/opt/uploads"
+	uploadPath = "/opt/uploads/profile3"
 )
 
 // Group 一个群聊包含多个客户端连接 + 消息历史
