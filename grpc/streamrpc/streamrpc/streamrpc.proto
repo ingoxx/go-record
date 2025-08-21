@@ -1,0 +1,50 @@
+syntax = "proto3";
+
+option go_package = "github.com/ingoxx/Golang-practise/grpc;streamrpc";
+
+package streamrpc;
+
+
+// 流式1
+service MyService {
+  rpc MyMethod(stream MyMessage) returns (stream MyMessage) {}
+}
+
+message MyMessage {
+  bytes msg = 1;
+  string name = 2;
+}
+
+// 流式2
+service StreamRpcFileService {
+  rpc SendFile (StreamFileRequest) returns (stream StreamFileReply) {}
+}
+
+//发送文件
+message StreamFileRequest {
+  string fd = 1;
+}
+
+//接收完后返回文件md5
+message StreamFileReply {
+  string md5 = 1;
+}
+
+// 流式3
+service StreamRpcService {
+  rpc SayHelloWorld (StreamRequest) returns (stream StreamReply) {}
+}
+
+// The request message containing the user's name. 1代表的是id在一个message 里边是唯一的, 不能重复
+message StreamRequest {
+  string name = 1;
+}
+
+// The response message containing the greetings
+message StreamReply {
+  string message = 1;
+}
+
+// 最后执行：protoc --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative streamrpc.proto
+// https://doc.oschina.net/ grpc文档
+// https://github.com/grpc/grpc-go

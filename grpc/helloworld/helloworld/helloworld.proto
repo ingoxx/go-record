@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+option go_package = "github.com/ingoxx/go-record/grpc;helloworld";
+
+package helloworld;
+
+service TestGrpcHelloWorld {
+    rpc SayHelloWorld (HelloRequest) returns (HelloReply) {}
+}
+
+
+// The request message containing the user's name. 1代表的是id在一个message 里边是唯一的, 不能重复
+message HelloRequest {
+	string name = 1;
+}
+  
+  // The response message containing the greetings
+message HelloReply {
+	string message = 1;
+}
+
+// 最后执行：protoc --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative helloworld.proto
+// https://doc.oschina.net/ grpc文档
+// https://github.com/grpc/grpc-go 
