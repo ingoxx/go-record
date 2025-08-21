@@ -98,7 +98,8 @@ type SaveInRedis struct {
 	UserReviewsCount int              `json:"user_reviews_count"`
 	Lng              float64          `json:"lng"`
 	Lat              float64          `json:"lat"`
-	IsShow           bool             `json:"is_show"`
+
+	IsShow bool `json:"is_show"`
 }
 
 type AddrListForm struct {

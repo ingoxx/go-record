@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/go-redis/redis"
 	"github.com/ingoxx/go-record/http/wx/pkg/config"
+	"github.com/ingoxx/go-record/http/wx/pkg/distance"
 	cuerr "github.com/ingoxx/go-record/http/wx/pkg/error"
 	"github.com/ingoxx/go-record/http/wx/pkg/eva"
 	"github.com/ingoxx/go-record/http/wx/pkg/form"
@@ -13,6 +14,8 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"log"
 	"math/rand/v2"
+	"sort"
+	"strconv"
 	"sync"
 	"time"
 )
@@ -93,7 +96,7 @@ func (r *RM) getAllData(key, cnKey, keyWord string) ([]*form.SaveInRedis, error)
 }
 
 // GetAllData 当前市某个运动的所有场地地址列表, 只保留半年月, 半年月后重新更新, 主要是为了获取最新的场地数据
-func (r *RM) GetAllData(key, cnKey, keyWord string) ([]*form.SaveInRedis, string, error) {
+func (r *RM) GetAllData(key, cnKey, keyWord, lat, lng string) ([]*form.SaveInRedis, string, error) {
 	// key：shenzhenshi_bks
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -136,6 +139,11 @@ func (r *RM) GetAllData(key, cnKey, keyWord string) ([]*form.SaveInRedis, string
 			return allData, result, err
 		}
 
+		//gd, err := r.getDistance(sd, lat, lng)
+		//if err != nil {
+		//	return gd, string(b), err
+		//}
+
 		return sd, string(b), nil
 
 	}
@@ -144,7 +152,39 @@ func (r *RM) GetAllData(key, cnKey, keyWord string) ([]*form.SaveInRedis, string
 		return allData, result, err
 	}
 
+	//nd, err := r.getDistance(allData, lat, lng)
+	//if err != nil {
+	//	return nd, result, err
+	//}
+
 	return allData, result, nil
+}
+
+func (r *RM) getDistance(data []*form.SaveInRedis, lat, lng string) ([]*form.SaveInRedis, error) {
+	lat1, err := strconv.ParseFloat(lat, 64)
+	if err != nil {
+		return data, err
+	}
+
+	lng1, err := strconv.ParseFloat(lng, 64)
+	if err != nil {
+		return data, err
+	}
+
+	for _, v := range data {
+		dis := distance.Distance(lat1, lng1, v.Lat, v.Lng)
+		v.Distance = fmt.Sprintf("%.2f", dis/1000)
+	}
+
+	sort.Slice(data, func(i, j int) bool {
+		return data[i].Distance < data[j].Distance
+	})
+
+	if len(data) >= config.ShowNumber {
+		return data[:config.ShowNumber], nil
+	}
+
+	return data, nil
 }
 
 func (r *RM) updateLatestData(key string, data []*form.SaveInRedis) ([]*form.SaveInRedis, error) {
