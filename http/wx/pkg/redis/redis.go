@@ -13,6 +13,7 @@ import (
 	"github.com/ingoxx/go-record/http/wx/pkg/mapApi"
 	"golang.org/x/crypto/bcrypt"
 	"log"
+	"math"
 	"math/rand/v2"
 	"sort"
 	"strconv"
@@ -96,7 +97,7 @@ func (r *RM) getAllData(key, cnKey, keyWord string) ([]*form.SaveInRedis, error)
 }
 
 // GetAllData 当前市某个运动的所有场地地址列表, 只保留半年月, 半年月后重新更新, 主要是为了获取最新的场地数据
-func (r *RM) GetAllData(key, cnKey, keyWord, lat, lng string) ([]*form.SaveInRedis, string, error) {
+func (r *RM) GetAllData(key, cnKey, keyWord, lat, lng, sportKey string) ([]*form.SaveInRedis, string, error) {
 	// key：shenzhenshi_bks
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -124,7 +125,7 @@ func (r *RM) GetAllData(key, cnKey, keyWord, lat, lng string) ([]*form.SaveInRed
 			res = append(res, ld...)
 		}
 
-		// 如何存在的数据就只更新
+		// 如果存在的数据就只更新
 		sd, err := r.updateLatestData(key, res)
 		if err != nil {
 			return allData, result, err
@@ -139,12 +140,12 @@ func (r *RM) GetAllData(key, cnKey, keyWord, lat, lng string) ([]*form.SaveInRed
 			return allData, result, err
 		}
 
-		//gd, err := r.getDistance(sd, lat, lng)
-		//if err != nil {
-		//	return gd, string(b), err
-		//}
+		gd, err := r.getVenueInfo(sd, lat, lng, sportKey)
+		if err != nil {
+			return gd, string(b), err
+		}
 
-		return sd, string(b), nil
+		return gd, string(b), nil
 
 	}
 
@@ -152,15 +153,15 @@ func (r *RM) GetAllData(key, cnKey, keyWord, lat, lng string) ([]*form.SaveInRed
 		return allData, result, err
 	}
 
-	//nd, err := r.getDistance(allData, lat, lng)
-	//if err != nil {
-	//	return nd, result, err
-	//}
+	nd, err := r.getVenueInfo(allData, lat, lng, sportKey)
+	if err != nil {
+		return nd, result, err
+	}
 
-	return allData, result, nil
+	return nd, result, nil
 }
 
-func (r *RM) getDistance(data []*form.SaveInRedis, lat, lng string) ([]*form.SaveInRedis, error) {
+func (r *RM) getVenueInfo(data []*form.SaveInRedis, lat, lng, sportKey string) ([]*form.SaveInRedis, error) {
 	lat1, err := strconv.ParseFloat(lat, 64)
 	if err != nil {
 		return data, err
@@ -172,19 +173,50 @@ func (r *RM) getDistance(data []*form.SaveInRedis, lat, lng string) ([]*form.Sav
 	}
 
 	for _, v := range data {
-		dis := distance.Distance(lat1, lng1, v.Lat, v.Lng)
-		v.Distance = fmt.Sprintf("%.2f", dis/1000)
+		//统计距离
+		dis, err := distance.Distance(lat1, lng1, v.Lat, v.Lng)
+		if err != nil {
+			return data, err
+		}
+		v.Distance = fmt.Sprintf("%.1f", dis/1000)
+		v.DisVal = math.Trunc(dis*10) / 10
 	}
 
 	sort.Slice(data, func(i, j int) bool {
-		return data[i].Distance < data[j].Distance
+		return data[i].DisVal < data[j].DisVal
 	})
 
+	var someData []*form.SaveInRedis
 	if len(data) >= config.ShowNumber {
-		return data[:config.ShowNumber], nil
+		someData = data[:config.ShowNumber]
+	} else {
+		someData = data
+	}
+	
+	for _, v := range someData {
+		// 统计当前在线人数
+		online, err := r.GetGroupOnline(v.Id)
+		if err != nil {
+			return data, err
+		}
+		v.Online = online
+
+		//统计加入组队的人数
+		users, err := r.GetJoinGroupUsers(v.Id)
+		if err != nil {
+			return data, err
+		}
+		v.JoinUsers = users
+
+		//统计对当前场地的评价
+		board, err := r.GetMsgBoard(v.Id, sportKey)
+		if err != nil {
+			return data, err
+		}
+		v.UserReviews = board
 	}
 
-	return data, nil
+	return someData, nil
 }
 
 func (r *RM) updateLatestData(key string, data []*form.SaveInRedis) ([]*form.SaveInRedis, error) {

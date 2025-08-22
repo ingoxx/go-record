@@ -48,7 +48,8 @@ type Message struct {
 	SenderID  string `json:"sender_id"`
 	Content   string `json:"content"`
 	Time      string `json:"time"`
-	Type      string `json:"type"`       // normal / count
+	Type      string `json:"type"`
+	AvaImg    string `json:"ava_img"`
 	UserCount int    `json:"user_count"` // 当前群人数
 }
 
@@ -1022,7 +1023,7 @@ func handleShowSportsSquare(w http.ResponseWriter, r *http.Request) {
 
 	cityPy := pinyin.LazyPinyin(city, pinyin.NewArgs())
 	fullKey := fmt.Sprintf("%s_%s", strings.Join(cityPy, ""), sportKey) // 拼接的key：shenzhenshi_bks
-	ol, _, err := redis.NewRM().GetAllData(fullKey, city, keyWord, lat, lng)
+	ol, _, err := redis.NewRM().GetAllData(fullKey, city, keyWord, lat, lng, sportKey)
 	if err != nil {
 		rp.h(Resp{
 			Msg:  err.Error(),

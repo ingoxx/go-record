@@ -83,7 +83,7 @@ type Location struct {
 // SaveInRedis 统一的写入格式
 type SaveInRedis struct {
 	JoinUsers        []JoinGroupUsers `json:"join_users"` // 某个运动场地，用户点击加入组件的人数
-	UserReviews      []MsgBoard       `json:"user_reviews"`
+	UserReviews      []*MsgBoard      `json:"user_reviews"`
 	Tags             []string         `json:"tags"`
 	Id               string           `json:"id"`
 	Img              string           `json:"img"`
@@ -98,8 +98,8 @@ type SaveInRedis struct {
 	UserReviewsCount int              `json:"user_reviews_count"`
 	Lng              float64          `json:"lng"`
 	Lat              float64          `json:"lat"`
-
-	IsShow bool `json:"is_show"`
+	DisVal           float64          `json:"dis_val"`
+	IsShow           bool             `json:"is_show"`
 }
 
 type AddrListForm struct {
