@@ -206,6 +206,9 @@ func (r *RM) getVenueInfo(data []*form.SaveInRedis, lat, lng, sportKey string) (
 		if err != nil {
 			return data, err
 		}
+		if len(users) > 0 {
+			v.JoinUserCount = len(users)
+		}
 		v.JoinUsers = users
 
 		//统计对当前场地的评价
