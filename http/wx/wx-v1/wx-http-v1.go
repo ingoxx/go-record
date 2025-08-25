@@ -1112,7 +1112,7 @@ func handleCheckAddAddrList(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	uid := r.FormValue("uid")
-	if uid != "ogR3E62jXXJMbVcImRqMA1gTSegM" {
+	if uid != config.Admin {
 		rp.h(Resp{
 			Msg:  "您有没有权限哟",
 			Code: 1002,
