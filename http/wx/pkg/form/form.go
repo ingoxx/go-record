@@ -131,6 +131,7 @@ type WxOpenidList struct {
 	Openid   string `json:"openid"`
 	Img      string `json:"img"`
 	NickName string `json:"nick_name"`
+	Time     string `json:"time"`
 }
 
 type Sports struct {

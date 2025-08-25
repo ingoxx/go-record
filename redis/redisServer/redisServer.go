@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/go-redis/redis"
+	"github.com/ingoxx/go-record/http/wx/pkg/config"
 	"github.com/ingoxx/go-record/http/wx/pkg/form"
 	"log"
 	"strings"
@@ -12,10 +13,10 @@ import (
 
 var rdPool = redis.NewClient(
 	&redis.Options{
-		Addr:         "127.0.0.1:6378",
+		Addr:         config.RedisAddr,
 		DB:           1,
 		MinIdleConns: 5,
-		Password:     "chatai",
+		Password:     config.RedPwd,
 		PoolSize:     5,
 		PoolTimeout:  30 * time.Second,
 		DialTimeout:  1 * time.Second,
@@ -57,10 +58,11 @@ type WxOpenidList struct {
 	Openid   string `json:"openid"`
 	Img      string `json:"img"`
 	NickName string `json:"nick_name"`
+	Time     string `json:"time"`
 }
 
 func main() {
-	getAllData()
+	getOpenIdList()
 }
 
 func updateSquare() {
@@ -206,9 +208,7 @@ func getOpenIdList() {
 	}
 
 	for _, v := range data {
-		if v.Openid == "ogR3E62jXXJMbVcImRqMA1gTSegM" {
-			v.Img = "https://ai.anythingai.online/static/profile3/1703.png"
-		}
+		v.Time = time.Now().Format("2006-01-02 15:04:05")
 	}
 
 	b, err := json.Marshal(&data)
@@ -216,11 +216,12 @@ func getOpenIdList() {
 		log.Fatalln(err)
 	}
 
+	for _, v := range data {
+		fmt.Println(v.Openid, v.NickName, v.Img, v.Time)
+	}
+
 	if _, err := rdPool.Set(k, b, 0).Result(); err != nil {
 		log.Fatalln(err)
 	}
 
-	for _, v := range data {
-		fmt.Println(v.Openid, v.NickName, v.Img)
-	}
 }

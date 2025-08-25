@@ -117,12 +117,61 @@ func main() {
 	mux.HandleFunc("/user-liked-reviews", handleUserLikedReviews)
 	mux.HandleFunc("/wx-user-info-update", handleWxUserInfoUpdate)
 	mux.HandleFunc("/update-sports-venue", handleUpdateSportsVenue)
+	mux.HandleFunc("/get-user-list", handleGetCityList)
 
 	// 启动广播处理器
 	go handleBroadcast()
 
 	log.Println("Server started on :11806")
 	log.Fatal(http.ListenAndServe(":11806", mux))
+}
+
+// 获取所有用户
+func handleGetCityList(w http.ResponseWriter, r *http.Request) {
+	var rp = Resp{w: w}
+	if r.Method != http.MethodGet {
+		rp.h(Resp{
+			Msg:  "invalid request",
+			Code: 1001,
+			Data: "0",
+		})
+		return
+	}
+
+	uid := r.FormValue("uid")
+	if uid != config.Admin {
+		rp.h(Resp{
+			Msg:  "invalid parameter",
+			Code: 1002,
+			Data: "0",
+		})
+		return
+	}
+
+	if err := redis.NewRM().GetWxOpenid(uid); err != nil {
+		rp.h(Resp{
+			Msg:  err.Error(),
+			Code: 1003,
+			Data: "0",
+		})
+		return
+	}
+
+	users, err := redis.NewRM().GetAllWxUsers()
+	if err != nil {
+		rp.h(Resp{
+			Msg:  err.Error(),
+			Code: 1004,
+			Data: "0",
+		})
+		return
+	}
+
+	rp.h(Resp{
+		Msg:  "ok",
+		Code: 1000,
+		Data: users,
+	})
 }
 
 // handleUpdateSportsVenue 更新场地信息
@@ -266,6 +315,7 @@ func handleWxUserInfoUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	data.Time = time.Now().Format("2006-01-02 15:04:05")
 	wxOpenid, err := redis.NewRM().SetWxOpenid(data)
 	if err != nil {
 		rp.h(Resp{
@@ -476,6 +526,7 @@ func handleGetUserReviews(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
+
 	gid := r.FormValue("gid")
 	uid := r.FormValue("uid")
 	sportKey := r.FormValue("key")
@@ -614,6 +665,7 @@ func handleWxUpload(w http.ResponseWriter, r *http.Request) {
 			Openid:   uid,
 			Img:      fmt.Sprintf("%s/%s", config.ImgUrl, fileName),
 			NickName: nn,
+			Time:     time.Now().Format("2006-01-02 15:04:05"),
 		}
 
 		wxOpenid, err := redis.NewRM().SetWxOpenid(data)
@@ -953,6 +1005,7 @@ func handleWxLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	data.Time = time.Now().Format("2006-01-02 15:04:05")
 	wxOpenid, err := redis.NewRM().SetWxOpenid(data)
 	if err != nil {
 		rp.h(Resp{
@@ -1034,7 +1087,7 @@ func handleShowSportsSquare(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if !openid.NewWhiteList(uid).IsWhite() {
-		if err := ddw.NewDDWarn(fmt.Sprintf("用户id：%s，打开了小程序，选择了：%s运动", uid, keyWord)).Send(); err != nil {
+		if err := ddw.NewDDWarn(fmt.Sprintf("用户id：%s，城市：%s，选择了：%s运动", uid, city, keyWord)).Send(); err != nil {
 			log.Println(err.Error())
 		}
 	}

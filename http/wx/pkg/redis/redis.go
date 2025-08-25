@@ -192,7 +192,7 @@ func (r *RM) getVenueInfo(data []*form.SaveInRedis, lat, lng, sportKey string) (
 	} else {
 		someData = data
 	}
-	
+
 	for _, v := range someData {
 		// 统计当前在线人数
 		online, err := r.GetGroupOnline(v.Id)
@@ -1003,6 +1003,25 @@ func (r *RM) UpdateVenueInfo(dt *form.UpdateVenueInfo) ([]*form.SaveInRedis, err
 	}
 
 	if err := r.Set(dt.SportKey, b, 0); err != nil {
+		return data, err
+	}
+
+	return data, nil
+}
+
+// GetAllWxUsers 获取所有微信用户
+func (r *RM) GetAllWxUsers() ([]*form.WxOpenidList, error) {
+	var data []*form.WxOpenidList
+	result, err := r.Get(config.WxOPenIdKey)
+	if err != nil && !errors.Is(err, redis.Nil) {
+		return data, err
+	}
+
+	if result == "" {
+		return make([]*form.WxOpenidList, 0), nil
+	}
+
+	if err := json.Unmarshal([]byte(result), &data); err != nil {
 		return data, err
 	}
 
