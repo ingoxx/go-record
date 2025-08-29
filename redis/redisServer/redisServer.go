@@ -62,7 +62,7 @@ type WxOpenidList struct {
 }
 
 func main() {
-	getOpenIdList()
+	getAllData()
 }
 
 func updateSquare() {
@@ -147,7 +147,7 @@ func getAllData() {
 		//"group_id_hangzhoushi_bms",
 		//"group_id_heyuanshi_sws",
 		//"group_id_shenzhenshi_yjg",
-		//"group_id_shenzhenshi_bks",
+		"group_id_shenzhenshi_bks",
 		//"group_id_heyuanshi_bks",
 		//"group_id_heyuanshi_bms",
 		//"group_id_guangzhoushi_bks",
@@ -159,7 +159,7 @@ func getAllData() {
 		//"group_id_zhuhaishi_bks",
 		//"group_id_huizhoushi_bks",
 		//"group_id_heyuanshi_gym",
-		"group_id_shenzhenshi_sws",
+		//"group_id_shenzhenshi_sws",
 		//"group_id_heyuanshi_yjg",
 		//"group_id_suzhoushi_bks",
 	}
@@ -176,9 +176,10 @@ func getAllData() {
 		}
 
 		fmt.Println("count >>> ", len(data))
-		//
+
 		for _, vd := range data {
-			fmt.Println(vd.Addr, vd.Images)
+			fmt.Println("------------------------------------------------------")
+			fmt.Println(vd.Title, vd.Addr, vd.Images, vd.Lat, vd.Lng)
 		}
 
 		//b, err := json.Marshal(&data)

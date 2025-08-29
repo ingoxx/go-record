@@ -8,6 +8,7 @@ import (
 	"github.com/importcjj/sensitive"
 	"github.com/ingoxx/go-record/http/wx/pkg/config"
 	cuerr "github.com/ingoxx/go-record/http/wx/pkg/error"
+	"github.com/ingoxx/go-record/http/wx/pkg/eva"
 	"github.com/ingoxx/go-record/http/wx/pkg/form"
 	"github.com/ingoxx/go-record/http/wx/pkg/redis"
 	"github.com/ingoxx/go-record/http/wx/utils/ddw"
@@ -739,7 +740,7 @@ func handleUserJoinGroup(w http.ResponseWriter, r *http.Request) {
 
 	defer r.Body.Close()
 
-	var data form.JoinGroupUsers
+	var data *form.JoinGroupUsers
 	if err := json.Unmarshal(b, &data); err != nil {
 		rp.h(Resp{
 			Msg:  err.Error(),
@@ -763,6 +764,12 @@ func handleUserJoinGroup(w http.ResponseWriter, r *http.Request) {
 			log.Println(err.Error())
 		}
 	}
+
+	if data.NickName == "" {
+		data.NickName = eva.NewSportType("bks").RandomNickname()
+	}
+
+	data.Time = time.Now().Format("2006-01-02 15:04:05")
 
 	ol, err := redis.NewRM().JoinGroupUpdate(data)
 	if err != nil {

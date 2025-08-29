@@ -442,8 +442,13 @@ func (r *RM) SetWxOpenid(wo *form.WxOpenidList) (*form.WxOpenidList, error) {
 		return fd, err
 	}
 
+	if wo.NickName == "" {
+		wo.NickName = eva.NewSportType("bks").RandomNickname()
+	}
+
 	// 用户不存在就添加
 	if result == "" {
+
 		data = append(data, wo)
 		b, err := json.Marshal(&data)
 		if err != nil {
@@ -679,8 +684,8 @@ func (r *RM) GetJoinGroupUsers(key string) ([]form.JoinGroupUsers, error) {
 	return data, nil
 }
 
-func (r *RM) JoinGroupUpdate(jd form.JoinGroupUsers) ([]form.JoinGroupUsers, error) {
-	var data []form.JoinGroupUsers
+func (r *RM) JoinGroupUpdate(jd *form.JoinGroupUsers) ([]*form.JoinGroupUsers, error) {
+	var data []*form.JoinGroupUsers
 
 	if jd.Oi == "1" {
 		return r.exitGroup(jd)
@@ -693,11 +698,11 @@ func (r *RM) JoinGroupUpdate(jd form.JoinGroupUsers) ([]form.JoinGroupUsers, err
 }
 
 // UpdateJoinGroupUsers 更新每个组加入的人数
-func (r *RM) UpdateJoinGroupUsers(jd form.JoinGroupUsers) ([]form.JoinGroupUsers, error) {
+func (r *RM) UpdateJoinGroupUsers(jd *form.JoinGroupUsers) ([]*form.JoinGroupUsers, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	var data []form.JoinGroupUsers
+	var data []*form.JoinGroupUsers
 	gn := fmt.Sprintf("%s_%s", config.JoinGroupKey, jd.GroupId)
 	result, err := r.Get(gn)
 	if err != nil && !errors.Is(err, redis.Nil) {
@@ -740,11 +745,11 @@ func (r *RM) UpdateJoinGroupUsers(jd form.JoinGroupUsers) ([]form.JoinGroupUsers
 }
 
 // exitGroup 退出组局
-func (r *RM) exitGroup(jd form.JoinGroupUsers) ([]form.JoinGroupUsers, error) {
+func (r *RM) exitGroup(jd *form.JoinGroupUsers) ([]*form.JoinGroupUsers, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	var data []form.JoinGroupUsers
+	var data []*form.JoinGroupUsers
 	gn := fmt.Sprintf("%s_%s", config.JoinGroupKey, jd.GroupId)
 	result, err := r.Get(gn)
 	if err != nil && !errors.Is(err, redis.Nil) {
@@ -752,14 +757,14 @@ func (r *RM) exitGroup(jd form.JoinGroupUsers) ([]form.JoinGroupUsers, error) {
 	}
 
 	if result == "" {
-		return make([]form.JoinGroupUsers, 0), nil
+		return make([]*form.JoinGroupUsers, 0), nil
 	}
 
 	if err := json.Unmarshal([]byte(result), &data); err != nil {
 		return data, err
 	}
 
-	var fd []form.JoinGroupUsers
+	var fd []*form.JoinGroupUsers
 	for _, v := range data {
 		if v.User != jd.User {
 			fd = append(fd, v)
@@ -767,7 +772,7 @@ func (r *RM) exitGroup(jd form.JoinGroupUsers) ([]form.JoinGroupUsers, error) {
 	}
 
 	if len(fd) == 0 {
-		fd = make([]form.JoinGroupUsers, 0)
+		fd = make([]*form.JoinGroupUsers, 0)
 	}
 
 	b, err := json.Marshal(&fd)
@@ -782,7 +787,7 @@ func (r *RM) exitGroup(jd form.JoinGroupUsers) ([]form.JoinGroupUsers, error) {
 	return fd, nil
 }
 
-func (r *RM) checkUserIsJoinGroup(data []form.JoinGroupUsers, gid, uid string) bool {
+func (r *RM) checkUserIsJoinGroup(data []*form.JoinGroupUsers, gid, uid string) bool {
 	for _, v := range data {
 		if v.GroupId == gid && v.User == uid {
 			return true

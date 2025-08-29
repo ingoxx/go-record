@@ -1,8 +1,10 @@
 package eva
 
 import (
+	"crypto/rand"
 	"encoding/json"
 	"github.com/ingoxx/go-record/http/wx/pkg/form"
+	"math/big"
 )
 
 type SportType struct {
@@ -121,4 +123,66 @@ func (s SportType) DefaultEvaBoard() ([]*form.MsgBoard, error) {
 	}
 
 	return evaData, nil
+}
+
+func (s SportType) RandomNickname() string {
+	nicknames := []string{
+		"三分铁匠铺",
+		"篮筐守护神",
+		"球场捡球大队长",
+		"扶墙上篮王",
+		"空位不进侠",
+		"篮板漏风王",
+		"全场犯规制造机",
+		"运球到界外",
+		"传球失误艺术家",
+		"球场背景板",
+		"篮筐终结者（自己）",
+		"球鞋打滑侠",
+		"上篮撞墙王",
+		"三步走成五步",
+		"球场空气掌控者",
+		"裁判的好朋友",
+		"扣篮靠意念",
+		"篮球场摄影师",
+		"球衣永远是干净的",
+		"上场五分钟气喘两小时",
+		"罚球不进研究员",
+		"球场假动作大师",
+		"一秒钟掉球侠",
+		"篮板永远抢不到",
+		"篮筐的守门员",
+		"投篮靠蒙王",
+		"球场指定背锅侠",
+		"关键球必失先生",
+		"一条龙跑偏侠",
+		"上篮打成传球",
+		"空位三不沾专家",
+		"跑位永远跑错",
+		"防守空气专业户",
+		"抢断失败大王",
+		"盖帽打自己脸",
+		"球场传球黑洞",
+		"投篮手抖症患者",
+		"上篮要扶梯",
+		"全场最响的喘气声",
+		"篮板跳不高",
+		"球场逃跑王",
+		"街球晃倒自己",
+		"半场都在喊要球",
+		"失误制造机",
+		"篮筐铁打的兄弟",
+		"运球看地板",
+		"打铁声交响乐",
+		"上篮弹框王",
+		"球场划水大师",
+	}
+
+	// 随机取一个昵称
+	n, err := rand.Int(rand.Reader, big.NewInt(int64(len(nicknames))))
+	if err != nil {
+		// 退化处理：如果随机失败，返回第一个
+		return nicknames[0]
+	}
+	return nicknames[n.Int64()]
 }

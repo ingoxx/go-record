@@ -156,10 +156,14 @@ type GroupOnlineStatus struct {
 }
 
 type JoinGroupUsers struct {
-	GroupId string `json:"group_id" validate:"required"`
-	User    string `json:"user"`
-	Img     string `json:"img"`
-	Oi      string `json:"oi"`
+	GroupId  string `json:"group_id" validate:"required"`
+	User     string `json:"user"`
+	NickName string `json:"nick_name"`
+	Img      string `json:"img"`
+	Style    string `json:"style"`
+	Skill    string `json:"skill"`
+	Time     string `json:"time"`
+	Oi       string `json:"oi"`
 }
 
 type MsgBoard struct {
