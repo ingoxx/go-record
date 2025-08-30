@@ -769,6 +769,10 @@ func handleUserJoinGroup(w http.ResponseWriter, r *http.Request) {
 		data.NickName = eva.NewSportType("bks").RandomNickname()
 	}
 
+	if data.Skill == "" {
+		data.Skill = eva.NewSportType("bks").RandomSkill()
+	}
+
 	data.Time = time.Now().Format("2006-01-02 15:04:05")
 
 	ol, err := redis.NewRM().JoinGroupUpdate(data)
