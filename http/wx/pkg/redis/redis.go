@@ -217,6 +217,19 @@ func (r *RM) getVenueInfo(data []*form.SaveInRedis, lat, lng, sportKey string) (
 			return data, err
 		}
 		v.UserReviews = board
+
+		list, err := r.GetAllCheckList(v.Id)
+		if err != nil {
+			return data, err
+		}
+
+		v.VenueUpdateUsers = list
+		if len(list) > 7 {
+			v.VenueUpdateUsers = list[:7]
+		}
+
+		v.VenueUpdateUsersCount = len(list)
+
 	}
 
 	return someData, nil
@@ -984,7 +997,7 @@ func (r *RM) updateLikeUsers(u []string, uid string) []string {
 }
 
 // UpdateVenueInfo 更新运动场地
-func (r *RM) UpdateVenueInfo(dt *form.UpdateVenueInfo) ([]*form.SaveInRedis, error) {
+func (r *RM) UpdateVenueInfo(dt *form.AddrListForm) ([]*form.SaveInRedis, error) {
 	var data []*form.SaveInRedis
 	result, err := r.Get(dt.SportKey)
 	if err != nil && !errors.Is(err, redis.Nil) {
@@ -1034,4 +1047,42 @@ func (r *RM) GetAllWxUsers() ([]*form.WxOpenidList, error) {
 	}
 
 	return data, nil
+}
+
+// GetAllCheckList 将相同的场地放在一起
+func (r *RM) GetAllCheckList(vid string) ([]*form.AddrListForm, error) {
+	var fd = make(map[string][]*form.AddrListForm)
+
+	cl, err := r.GetAddrList() // 遍历获取审核列表，找到对应id将其更新到指定key的数据中
+	if err != nil {
+		return fd[vid], err
+	}
+
+	for _, v := range cl {
+		i, ok := fd[v.Id]
+		if !ok {
+			fd[v.Id] = append(fd[v.Id], v)
+			continue
+		}
+		i = append(i, v)
+		fd[v.Id] = i
+	}
+
+	if len(fd[vid]) > 1 {
+		sort.Slice(fd[vid], func(i, j int) bool {
+			return r.getTimestamp(fd[vid][i].Time) < r.getTimestamp(fd[vid][j].Time)
+		})
+	}
+
+	return fd[vid], err
+}
+
+func (r *RM) getTimestamp(timeStr string) int64 {
+	layout := "2006-01-02 15:04:05"
+
+	t, err := time.ParseInLocation(layout, timeStr, time.Local)
+	if err != nil {
+		return 0
+	}
+	return t.UnixNano()
 }

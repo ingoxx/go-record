@@ -61,8 +61,29 @@ type WxOpenidList struct {
 	Time     string `json:"time"`
 }
 
+type AddrListForm struct {
+	Content    string  `json:"content"`  // 更新内容,目前只能统一更新图片,这里都写: 更新了场地图片
+	UserImg    string  `json:"user_img"` // 用户头像
+	NickName   string  `json:"nick_name"`
+	Tags       string  `json:"tags"  validate:"required"`
+	Id         string  `json:"id" validate:"required"`
+	Addr       string  `json:"addr" validate:"required"`
+	UserId     string  `json:"user_id" validate:"required"`      // 添加场地的用户id
+	City       string  `json:"city"  validate:"required"`        // 前端传入的是中文
+	CityPy     string  `json:"city_py"`                          // 前端传入的中文转成拼音
+	SportKey   string  `json:"sport_key" validate:"required"`    // 运动分类，篮球：bks,足球：fbs...
+	UpdateType string  `json:"update_type"  validate:"required"` // 更新类型：1.用户添加的新场地，2.用户更新了场地
+	Aid        string  `json:"aid"`                              // api返回的场地的唯一id，就是再次请求返回的id都是一样的
+	Img        string  `json:"img"`                              // 场地图片
+	Time       string  `json:"time"`                             // 更新时间
+	Lat        float64 `json:"lat"`
+	Lng        float64 `json:"lng"`
+	IsRecord   bool    `json:"is_record"` // true：已记录（审核通过），false：未记录（还未审核通过）
+	IsShow     bool    `json:"is_show"`   // 审核列表中的数据，true：隐藏，false：不隐藏
+}
+
 func main() {
-	getAllData()
+	getOpenIdList()
 }
 
 func updateSquare() {
@@ -208,8 +229,55 @@ func getOpenIdList() {
 		log.Fatalln(err)
 	}
 
+	//for _, v := range data {
+	//	v.Time = time.Now().Format("2006-01-02 15:04:05")
+	//}
+
 	for _, v := range data {
+		fmt.Println(v.Openid, v.NickName, v.Img, v.Time)
+	}
+
+	//b, err := json.Marshal(&data)
+	//if err != nil {
+	//	log.Fatalln(err)
+	//}
+	//
+	//
+	//
+	//if _, err := rdPool.Set(k, b, 0).Result(); err != nil {
+	//	log.Fatalln(err)
+	//}
+
+}
+
+func getCheckList() {
+	var data []*AddrListForm
+	k := "group_id_addr_check_list"
+	result, err := rdPool.Get(k).Result()
+	if err != nil {
+		log.Fatalln(k, err)
+	}
+
+	if err := json.Unmarshal([]byte(result), &data); err != nil {
+		log.Fatalln(err)
+	}
+
+	for _, v := range data {
+		user := getUserInfo(v.UserId)
+		if user.Img != "" {
+			v.UserImg = user.Img
+		}
+		if user.NickName != "" {
+			v.NickName = user.NickName
+		}
+		if v.UpdateType == "1" {
+			v.Content = "用户添加了新的场地"
+		}
+		if v.UpdateType == "2" {
+			v.Content = "用户更新了场地图片"
+		}
 		v.Time = time.Now().Format("2006-01-02 15:04:05")
+		fmt.Println(v.UserImg, v.NickName, v.UpdateType, v.Content, v.Time)
 	}
 
 	b, err := json.Marshal(&data)
@@ -217,12 +285,31 @@ func getOpenIdList() {
 		log.Fatalln(err)
 	}
 
-	for _, v := range data {
-		fmt.Println(v.Openid, v.NickName, v.Img, v.Time)
-	}
-
 	if _, err := rdPool.Set(k, b, 0).Result(); err != nil {
 		log.Fatalln(err)
 	}
 
+	fmt.Println("save ok")
+}
+
+func getUserInfo(uid string) *WxOpenidList {
+	var data []*WxOpenidList
+	k := "group_id_wx_open_id_list"
+	result, err := rdPool.Get(k).Result()
+	if err != nil {
+		log.Fatalln(k, err)
+	}
+
+	if err := json.Unmarshal([]byte(result), &data); err != nil {
+		log.Fatalln(err)
+	}
+
+	for _, v := range data {
+		if v.Openid == uid {
+			fmt.Println(v.NickName, v.Openid)
+			return v
+		}
+	}
+
+	return new(WxOpenidList)
 }

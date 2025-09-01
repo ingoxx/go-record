@@ -118,7 +118,7 @@ func main() {
 	mux.HandleFunc("/user-liked-reviews", handleUserLikedReviews)
 	mux.HandleFunc("/wx-user-info-update", handleWxUserInfoUpdate)
 	mux.HandleFunc("/update-sports-venue", handleUpdateSportsVenue)
-	mux.HandleFunc("/get-user-list", handleGetCityList)
+	mux.HandleFunc("/get-user-list", handleGetUserList)
 
 	// 启动广播处理器
 	go handleBroadcast()
@@ -127,8 +127,8 @@ func main() {
 	log.Fatal(http.ListenAndServe(":11806", mux))
 }
 
-// 获取所有用户
-func handleGetCityList(w http.ResponseWriter, r *http.Request) {
+// handleGetUserList 获取所有用户
+func handleGetUserList(w http.ResponseWriter, r *http.Request) {
 	var rp = Resp{w: w}
 	if r.Method != http.MethodGet {
 		rp.h(Resp{
@@ -217,7 +217,7 @@ func handleUpdateSportsVenue(w http.ResponseWriter, r *http.Request) {
 
 	defer r.Body.Close()
 
-	var data *form.UpdateVenueInfo
+	var data *form.AddrListForm
 	if err := json.Unmarshal(b, &data); err != nil {
 		rp.h(Resp{
 			Msg:  err.Error(),
@@ -1279,8 +1279,7 @@ func handleAddAddrPass(w http.ResponseWriter, r *http.Request) {
 
 	defer r.Body.Close()
 
-	var data form.PassAddrReqForm
-
+	var data *form.AddrListForm
 	if err := json.Unmarshal(b, &data); err != nil {
 		rp.h(Resp{
 			Msg:  err.Error(),
@@ -1301,12 +1300,12 @@ func handleAddAddrPass(w http.ResponseWriter, r *http.Request) {
 
 	// 更新已经存在的场地信息
 	if data.UpdateType == "2" {
-		ud := &form.UpdateVenueInfo{
-			SportKey: data.City,
-			Id:       data.Id,
-			Img:      data.Img,
-		}
-		if _, err := redis.NewRM().UpdateVenueInfo(ud); err != nil {
+		//ud := &form.UpdateVenueInfo{
+		//	SportKey: data.City,
+		//	Id:       data.Id,
+		//	Img:      data.Img,
+		//}
+		if _, err := redis.NewRM().UpdateVenueInfo(data); err != nil {
 			rp.h(Resp{
 				Msg:  err.Error(),
 				Code: 1007,
@@ -1345,7 +1344,7 @@ func handleAddAddrPass(w http.ResponseWriter, r *http.Request) {
 
 }
 
-// handleAddSquare 用户提交的地址添加到地址列表
+// handleAddSquare 用户提交的场地地址先添加到地址审核列表中
 func handleAddSquare(w http.ResponseWriter, r *http.Request) {
 	var rp = Resp{w: w}
 	if r.Method != http.MethodPost {
