@@ -82,26 +82,29 @@ type Location struct {
 
 // SaveInRedis 统一的写入格式
 type SaveInRedis struct {
-	JoinUsers             []JoinGroupUsers `json:"join_users"` // 某个运动场地，用户点击加入组件的人数
-	UserReviews           []*MsgBoard      `json:"user_reviews"`
-	VenueUpdateUsers      []*AddrListForm  `json:"venue_update_users"`
-	Tags                  []string         `json:"tags"`
-	Images                []string         `json:"images"`
-	Id                    string           `json:"id"`
-	Img                   string           `json:"img"`
-	Addr                  string           `json:"addr"`
-	Title                 string           `json:"title"`
-	UserId                string           `json:"user_id"`
-	Online                string           `json:"online"`
-	Distance              string           `json:"distance"`
-	Aid                   string           `json:"aid"` // 接口返回的地址唯一id，再次请求接口返回的id是一致的，更新的时候有用
-	JoinUserCount         int              `json:"join_user_count"`
-	UserReviewsCount      int              `json:"user_reviews_count"`
-	VenueUpdateUsersCount int              `json:"venue_update_users_count"`
-	Lng                   float64          `json:"lng"`
-	Lat                   float64          `json:"lat"`
-	DisVal                float64          `json:"dis_val"`
-	IsShow                bool             `json:"is_show"`
+	JoinUsers              []*JoinGroupUsers `json:"join_users"` // 某个运动场地，用户点击加入组件的人数
+	UserReviews            []*MsgBoard       `json:"user_reviews"`
+	VenueUpdateUsers       []*AddrListForm   `json:"venue_update_users"`
+	Tags                   []string          `json:"tags"`
+	Images                 []string          `json:"images"`
+	Id                     string            `json:"id"`
+	Img                    string            `json:"img"`
+	Addr                   string            `json:"addr"`
+	Title                  string            `json:"title"`
+	UserId                 string            `json:"user_id"`
+	Online                 string            `json:"online"`
+	Distance               string            `json:"distance"`
+	Aid                    string            `json:"aid"` // 接口返回的地址唯一id，再次请求接口返回的id是一致的，更新的时候有用
+	JoinUserCount          int               `json:"join_user_count"`
+	UserReviewsCount       int               `json:"user_reviews_count"`
+	VenueUpdateUsersCount  int               `json:"venue_update_users_count"`
+	Lng                    float64           `json:"lng"`
+	Lat                    float64           `json:"lat"`
+	DisVal                 float64           `json:"dis_val"`
+	IsShow                 bool              `json:"is_show"`
+	IsShowUserReviews      bool              `json:"is_show_user_reviews"`
+	IsShowJoinUsers        bool              `json:"is_show_join_users"`
+	IsShowVenueUpdateUsers bool              `json:"is_show_venue_update_users"`
 }
 
 type AddrListForm struct {
@@ -114,7 +117,7 @@ type AddrListForm struct {
 	UserId     string  `json:"user_id" validate:"required"`      // 添加场地的用户id
 	City       string  `json:"city"  validate:"required"`        // 前端传入的是中文
 	CityPy     string  `json:"city_py"`                          // 前端传入的中文转成拼音
-	SportKey   string  `json:"sport_key" validate:"required"`    // 运动分类，篮球：bks,足球：fbs...
+	SportKey   string  `json:"sport_key" validate:"required"`    // 运动分类，篮球：shenzhenshi_bks,足球：shenzhenshi_fbs...
 	UpdateType string  `json:"update_type"  validate:"required"` // 更新类型：1.用户添加的新场地，2.用户更新了场地
 	Aid        string  `json:"aid"`                              // api返回的场地的唯一id，就是再次请求返回的id都是一样的
 	Img        string  `json:"img"`                              // 场地图片

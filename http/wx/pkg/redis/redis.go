@@ -216,6 +216,7 @@ func (r *RM) getVenueInfo(data []*form.SaveInRedis, lat, lng, sportKey string) (
 		if err != nil {
 			return data, err
 		}
+
 		v.UserReviews = board
 
 		list, err := r.GetAllCheckList(v.Id)
@@ -393,8 +394,8 @@ func (r *RM) GetAddrList() ([]*form.AddrListForm, error) {
 }
 
 // UserAddAddrReq 用户提交添加篮球场地址的请求
-func (r *RM) UserAddAddrReq(data form.AddrListForm) error {
-	var dataList = make([]form.AddrListForm, 0)
+func (r *RM) UserAddAddrReq(data *form.AddrListForm) error {
+	var dataList = make([]*form.AddrListForm, 0)
 	result, err := r.Get(config.AddrListKey)
 	if err != nil && !errors.Is(err, redis.Nil) {
 		return err
@@ -427,7 +428,7 @@ func (r *RM) UpdateAddrList(id string, status bool) ([]*form.AddrListForm, error
 	}
 
 	for _, v := range list {
-		if v.Id == id {
+		if v.Id == id && !v.IsRecord { // 更新场地信息的时候，可能会存在多个相同场地的id，必须是v.IsRecord为false的才能更新
 			v.IsRecord = status
 			v.IsShow = true
 		}
@@ -455,13 +456,11 @@ func (r *RM) SetWxOpenid(wo *form.WxOpenidList) (*form.WxOpenidList, error) {
 		return fd, err
 	}
 
-	if wo.NickName == "" {
-		wo.NickName = eva.NewSportType("bks").RandomNickname()
-	}
-
 	// 用户不存在就添加
 	if result == "" {
-
+		if wo.NickName == "" {
+			wo.NickName = eva.NewSportType("bks").RandomNickname()
+		}
 		data = append(data, wo)
 		b, err := json.Marshal(&data)
 		if err != nil {
@@ -498,6 +497,9 @@ func (r *RM) SetWxOpenid(wo *form.WxOpenidList) (*form.WxOpenidList, error) {
 
 	// 用户不存在就添加
 	if !isExist {
+		if wo.NickName == "" {
+			wo.NickName = eva.NewSportType("bks").RandomNickname()
+		}
 		wo.Img = r.generateRandomImg()
 		data = append(data, wo)
 
@@ -678,8 +680,8 @@ func (r *RM) GetAllOnlineData() ([]form.GroupOnlineStatus, error) {
 }
 
 // GetJoinGroupUsers 获取每个组加入的人数
-func (r *RM) GetJoinGroupUsers(key string) ([]form.JoinGroupUsers, error) {
-	var data []form.JoinGroupUsers
+func (r *RM) GetJoinGroupUsers(key string) ([]*form.JoinGroupUsers, error) {
+	var data []*form.JoinGroupUsers
 	gn := fmt.Sprintf("%s_%s", config.JoinGroupKey, key)
 	result, err := r.Get(gn)
 	if err != nil && !errors.Is(err, redis.Nil) {
@@ -687,7 +689,7 @@ func (r *RM) GetJoinGroupUsers(key string) ([]form.JoinGroupUsers, error) {
 	}
 
 	if result == "" {
-		return make([]form.JoinGroupUsers, 0), nil
+		return make([]*form.JoinGroupUsers, 0), nil
 	}
 
 	if err := json.Unmarshal([]byte(result), &data); err != nil {
@@ -1059,13 +1061,15 @@ func (r *RM) GetAllCheckList(vid string) ([]*form.AddrListForm, error) {
 	}
 
 	for _, v := range cl {
-		i, ok := fd[v.Id]
-		if !ok {
-			fd[v.Id] = append(fd[v.Id], v)
-			continue
+		if v.IsRecord {
+			i, ok := fd[v.Id]
+			if !ok {
+				fd[v.Id] = append(fd[v.Id], v)
+				continue
+			}
+			i = append(i, v)
+			fd[v.Id] = i
 		}
-		i = append(i, v)
-		fd[v.Id] = i
 	}
 
 	if len(fd[vid]) > 1 {
@@ -1085,4 +1089,22 @@ func (r *RM) getTimestamp(timeStr string) int64 {
 		return 0
 	}
 	return t.UnixNano()
+}
+
+func (r *RM) randomPick(s []*form.MsgBoard, n int) []*form.MsgBoard {
+	if n > len(s) {
+		n = len(s)
+	}
+
+	rand.Shuffle(len(s), func(i, j int) {
+		s[i], s[j] = s[j], s[i]
+	})
+
+	return s[:n]
+}
+
+// 随机获取切片中的随机数量元素
+func (r *RM) randomSubset(s []*form.MsgBoard) []*form.MsgBoard {
+	n := rand.IntN(len(s)) + 1
+	return r.randomPick(s, n)
 }

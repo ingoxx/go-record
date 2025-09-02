@@ -27,23 +27,29 @@ var rdPool = redis.NewClient(
 
 // SaveInRedis 写入redis的格式
 type SaveInRedis struct {
-	JoinUsers        []form.JoinGroupUsers `json:"join_users"` // 某个运动场地，用户点击加入组件的人数
-	UserReviews      []form.MsgBoard       `json:"user_reviews"`
-	Tags             []string              `json:"tags"`
-	Id               string                `json:"id"`
-	Img              string                `json:"img"`
-	Images           []string              `json:"images"`
-	Addr             string                `json:"addr"`
-	Title            string                `json:"title"`
-	UserId           string                `json:"user_id"`
-	Online           string                `json:"online"`
-	Distance         string                `json:"distance"`
-	Aid              string                `json:"aid"` // 接口返回的地址唯一id，再次请求接口返回的id是一致的，更新的时候有用
-	JoinUserCount    int                   `json:"join_user_count"`
-	UserReviewsCount int                   `json:"user_reviews_count"`
-	Lng              float64               `json:"lng"`
-	Lat              float64               `json:"lat"`
-	IsShow           bool                  `json:"is_show"`
+	JoinUsers              []form.JoinGroupUsers `json:"join_users"` // 某个运动场地，用户点击加入组件的人数
+	UserReviews            []*form.MsgBoard      `json:"user_reviews"`
+	VenueUpdateUsers       []*form.AddrListForm  `json:"venue_update_users"`
+	Tags                   []string              `json:"tags"`
+	Images                 []string              `json:"images"`
+	Id                     string                `json:"id"`
+	Img                    string                `json:"img"`
+	Addr                   string                `json:"addr"`
+	Title                  string                `json:"title"`
+	UserId                 string                `json:"user_id"`
+	Online                 string                `json:"online"`
+	Distance               string                `json:"distance"`
+	Aid                    string                `json:"aid"` // 接口返回的地址唯一id，再次请求接口返回的id是一致的，更新的时候有用
+	JoinUserCount          int                   `json:"join_user_count"`
+	UserReviewsCount       int                   `json:"user_reviews_count"`
+	VenueUpdateUsersCount  int                   `json:"venue_update_users_count"`
+	Lng                    float64               `json:"lng"`
+	Lat                    float64               `json:"lat"`
+	DisVal                 float64               `json:"dis_val"`
+	IsShow                 bool                  `json:"is_show"`
+	IsShowUserReviews      bool                  `json:"is_show_user_reviews"`
+	IsShowJoinUsers        bool                  `json:"is_show_join_users"`
+	IsShowVenueUpdateUsers bool                  `json:"is_show_venue_update_users"`
 }
 
 type SportInfo struct {
@@ -62,8 +68,8 @@ type WxOpenidList struct {
 }
 
 type AddrListForm struct {
-	Content    string  `json:"content"`  // 更新内容,目前只能统一更新图片,这里都写: 更新了场地图片
 	UserImg    string  `json:"user_img"` // 用户头像
+	Content    string  `json:"content"`  // 更新内容,目前只能统一更新图片,这里都写: 更新了场地图片
 	NickName   string  `json:"nick_name"`
 	Tags       string  `json:"tags"  validate:"required"`
 	Id         string  `json:"id" validate:"required"`
@@ -71,7 +77,7 @@ type AddrListForm struct {
 	UserId     string  `json:"user_id" validate:"required"`      // 添加场地的用户id
 	City       string  `json:"city"  validate:"required"`        // 前端传入的是中文
 	CityPy     string  `json:"city_py"`                          // 前端传入的中文转成拼音
-	SportKey   string  `json:"sport_key" validate:"required"`    // 运动分类，篮球：bks,足球：fbs...
+	SportKey   string  `json:"sport_key" validate:"required"`    // 运动分类，篮球：shenzhenshi_bks,足球：shenzhenshi_fbs...
 	UpdateType string  `json:"update_type"  validate:"required"` // 更新类型：1.用户添加的新场地，2.用户更新了场地
 	Aid        string  `json:"aid"`                              // api返回的场地的唯一id，就是再次请求返回的id都是一样的
 	Img        string  `json:"img"`                              // 场地图片
@@ -83,7 +89,7 @@ type AddrListForm struct {
 }
 
 func main() {
-	getOpenIdList()
+	getAllData()
 }
 
 func updateSquare() {
@@ -157,32 +163,35 @@ func updateSquare() {
 
 func getAllData() {
 	k := []string{
-		//"group_id_hangzhoushi_bks",
-		//"group_id_heyuanshi_fbs",
-		//"group_id_dongguanshi_sws",
-		//"group_id_heyuanshi_tns",
-		//"group_id_shenzhenshi_bms",
-		//"group_id_shanghaishi_bks",
-		//"group_id_shenzhenshi_tqd",
-		//"group_id_shenzhenshi_gos",
-		//"group_id_hangzhoushi_bms",
-		//"group_id_heyuanshi_sws",
-		//"group_id_shenzhenshi_yjg",
+		"group_id_guangzhoushi_fbs",
+		"group_id_zhangshashi_bms",
+		"group_id_anyangshi_bks",
+		"group_id_shenzhenshi_bms",
+		"group_id_guangzhoushi_sws",
+		"group_id_shanghaishi_bks",
+		"group_id_shenzhenshi_gos",
+		"group_id_zhongqingshi_bks",
+		"group_id_zhangchunshi_bks",
+		"group_id_shenzhenshi_yjg",
+		"group_id_daqingshi_bks",
+		"group_id_guangzhoushi_bks",
+		"group_id_huizhoushi_bms",
+		"group_id_shenzhenshi_gym",
+		"group_id_shenzhenshi_fbs",
+		"group_id_jinhuashi_bks",
+		"group_id_chuzhoushi_bks",
+		"group_id_shenzhenshi_sws",
+		"group_id_taizhoushi_bks",
+		"group_id_zhongqingshi_fbs",
 		"group_id_shenzhenshi_bks",
-		//"group_id_heyuanshi_bks",
-		//"group_id_heyuanshi_bms",
-		//"group_id_guangzhoushi_bks",
-		//"group_id_shenzhenshi_fbs",
-		//"group_id_huizhoushi_tns",
-		//"group_id_jinanshi_tns",
-		//"group_id_shenzhenshi_tns",
-		//"group_id_chuzhoushi_bks",
-		//"group_id_zhuhaishi_bks",
-		//"group_id_huizhoushi_bks",
-		//"group_id_heyuanshi_gym",
-		//"group_id_shenzhenshi_sws",
-		//"group_id_heyuanshi_yjg",
-		//"group_id_suzhoushi_bks",
+		"group_id_heyuanshi_bks",
+		"group_id_changzhoushi_bks",
+		"group_id_shanghaishi_bms",
+		"group_id_chengdoushi_bks",
+		"group_id_guangzhoushi_yjg",
+		"group_id_shenzhenshi_tns",
+		"group_id_huizhoushi_bks",
+		"group_id_zhongqingshi_bms",
 	}
 
 	for _, vk := range k {
@@ -196,12 +205,10 @@ func getAllData() {
 			log.Fatalln(err)
 		}
 
-		fmt.Println("count >>> ", len(data))
-
-		for _, vd := range data {
-			fmt.Println("------------------------------------------------------")
-			fmt.Println(vd.Title, vd.Addr, vd.Images, vd.Lat, vd.Lng)
-		}
+		//for _, vd := range data {
+		//	fmt.Println("------------------------------------------------------")
+		//	fmt.Println(vd.Title, vd.Addr, vd.Images, vd.Lat, vd.Lng)
+		//}
 
 		//b, err := json.Marshal(&data)
 		//if err != nil {
@@ -211,8 +218,8 @@ func getAllData() {
 		//if _, err := rdPool.Set(vk, b, 0).Result(); err != nil {
 		//	log.Fatalln(err)
 		//}
-		//
-		//log.Printf("%s , ok\n", vk)
+
+		log.Printf("%s , ok\n", vk)
 	}
 
 }
@@ -229,24 +236,18 @@ func getOpenIdList() {
 		log.Fatalln(err)
 	}
 
-	//for _, v := range data {
-	//	v.Time = time.Now().Format("2006-01-02 15:04:05")
-	//}
-
 	for _, v := range data {
-		fmt.Println(v.Openid, v.NickName, v.Img, v.Time)
+		v.Img = strings.ReplaceAll(v.Img, "anyhingai", "anythingai")
 	}
 
-	//b, err := json.Marshal(&data)
-	//if err != nil {
-	//	log.Fatalln(err)
-	//}
-	//
-	//
-	//
-	//if _, err := rdPool.Set(k, b, 0).Result(); err != nil {
-	//	log.Fatalln(err)
-	//}
+	b, err := json.Marshal(&data)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	if _, err := rdPool.Set(k, b, 0).Result(); err != nil {
+		log.Fatalln(err)
+	}
 
 }
 
@@ -262,23 +263,23 @@ func getCheckList() {
 		log.Fatalln(err)
 	}
 
-	for _, v := range data {
-		user := getUserInfo(v.UserId)
-		if user.Img != "" {
-			v.UserImg = user.Img
-		}
-		if user.NickName != "" {
-			v.NickName = user.NickName
-		}
-		if v.UpdateType == "1" {
-			v.Content = "用户添加了新的场地"
-		}
-		if v.UpdateType == "2" {
-			v.Content = "用户更新了场地图片"
-		}
-		v.Time = time.Now().Format("2006-01-02 15:04:05")
-		fmt.Println(v.UserImg, v.NickName, v.UpdateType, v.Content, v.Time)
-	}
+	//for _, v := range data {
+	//	//user := getUserInfo(v.UserId)
+	//	//if user.Img != "" {
+	//	//	v.UserImg = user.Img
+	//	//}
+	//	//if user.NickName != "" {
+	//	//	v.NickName = user.NickName
+	//	//}
+	//	//if v.UpdateType == "1" {
+	//	//	v.Content = "用户添加了新的场地"
+	//	//}
+	//	//if v.UpdateType == "2" {
+	//	//	v.Content = "用户更新了场地图片"
+	//	//}
+	//	//v.Time = time.Now().Format("2006-01-02 15:04:05")
+	//	fmt.Println(v.Id, v.IsRecord, v.Tags, v.UpdateType, v.SportKey)
+	//}
 
 	b, err := json.Marshal(&data)
 	if err != nil {

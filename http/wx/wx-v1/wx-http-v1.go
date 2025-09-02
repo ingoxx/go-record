@@ -109,7 +109,7 @@ func main() {
 	mux.HandleFunc("/check-list", handleCheckAddAddrList)
 	mux.HandleFunc("/add-square-refuse", handleAddAddrRefuse)
 	mux.HandleFunc("/add-square-pass", handleAddAddrPass)
-	mux.HandleFunc("/show-square", handleShowSportsSquare)
+	mux.HandleFunc("/show-square", handleShowSportsSquare) // 所有场地信息
 	mux.HandleFunc("/wx-login", handleWxLogin)
 	mux.HandleFunc("/get-all-sports", handleGetAllSports)
 	mux.HandleFunc("/wx-upload", handleWxUpload)
@@ -513,7 +513,6 @@ func handleUpdateUserReviews(w http.ResponseWriter, r *http.Request) {
 		Code: 1000,
 		Data: ol,
 	})
-
 }
 
 // handleGetUserReviews 获取某个场地的所有用户评价
@@ -1267,6 +1266,8 @@ func handleAddAddrPass(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var data *form.AddrListForm
+
 	b, err := io.ReadAll(r.Body)
 	if err != nil {
 		rp.h(Resp{
@@ -1279,7 +1280,6 @@ func handleAddAddrPass(w http.ResponseWriter, r *http.Request) {
 
 	defer r.Body.Close()
 
-	var data *form.AddrListForm
 	if err := json.Unmarshal(b, &data); err != nil {
 		rp.h(Resp{
 			Msg:  err.Error(),
@@ -1317,7 +1317,7 @@ func handleAddAddrPass(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// key:shenzhenshi_bks
-	if _, err := redis.NewRM().Update(data.City, data.Id, data.UpdateType); err != nil {
+	if _, err := redis.NewRM().Update(data.SportKey, data.Id, data.UpdateType); err != nil {
 		rp.h(Resp{
 			Msg:  err.Error(),
 			Code: 1008,
@@ -1387,7 +1387,7 @@ func handleAddSquare(w http.ResponseWriter, r *http.Request) {
 
 	defer r.Body.Close()
 
-	var data form.AddrListForm
+	var data *form.AddrListForm
 
 	if err := json.Unmarshal(b, &data); err != nil {
 		rp.h(Resp{
