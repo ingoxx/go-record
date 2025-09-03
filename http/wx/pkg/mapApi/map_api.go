@@ -94,3 +94,7 @@ func (ma *MapApi) Run() []*MapData {
 
 	return results
 }
+
+func (ma *MapApi) GetGdSinglePlaceSearch() ([]string, error) {
+	return gdMapApi.NewGdMapApi(ma.urls["gd"], ma.city, ma.keyWord).SinglePlaceSearch()
+}

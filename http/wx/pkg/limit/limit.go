@@ -104,9 +104,9 @@ func main() {
 	}
 
 	for _, v := range search {
-		fmt.Println("------------------------------------")
-		fmt.Println(v.Addr, v.Title)
-		fmt.Println(v.Lat, v.Lng)
+		fmt.Println("-------------------------")
+		fmt.Println(v.Addr)
+		fmt.Println(v.Title)
 	}
 
 }

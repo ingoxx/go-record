@@ -28,6 +28,48 @@ func NewGdMapApi(url, city, keyWord string) GdMapApi {
 	}
 }
 
+func (t GdMapApi) SinglePlaceSearch() ([]string, error) {
+	var fd form.GdAPIResponse
+	var imps = make([]string, 0, 1)
+	offset := 1
+
+	for offset <= 1 {
+		url := fmt.Sprintf("%s/v3/place/text?key=%s&city=%s&keywords=%s&types=&children=1&offset=1&page=%d&extensions=all", t.Url, config.GdKey, t.City, t.KeyWord, offset)
+		resp, err := http.Get(url)
+		if err != nil {
+			return imps, err
+		}
+
+		defer resp.Body.Close()
+
+		b, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return imps, err
+		}
+
+		if err := json.Unmarshal(b, &fd); err != nil {
+			return imps, err
+		}
+
+		if len(fd.Data) == 0 {
+			offset++
+			continue
+		}
+
+		for _, v := range fd.Data {
+			for _, v := range v.Photos {
+				if v.URL != "" {
+					httpsUrl := strings.ReplaceAll(v.URL, "http:", "https:")
+					imps = append(imps, httpsUrl)
+				}
+			}
+		}
+		offset++
+	}
+
+	return imps, nil
+}
+
 func (t GdMapApi) KeyWordSearch() ([]*form.SaveInRedis, error) {
 	var fd form.GdAPIResponse
 	var sd = make([]*form.SaveInRedis, 0, 100)

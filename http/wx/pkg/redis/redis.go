@@ -248,6 +248,7 @@ func (r *RM) updateLatestData(key string, data []*form.SaveInRedis) ([]*form.Sav
 		for _, v2 := range cl {
 			if v1.Aid == v2.Aid && v2.SportKey == key {
 				if v2.IsRecord && v2.UpdateType == "2" {
+					v1.Images = append(v1.Images, v2.Img)
 					v1.Img = v2.Img
 				}
 				isFind = true
@@ -269,6 +270,7 @@ func (r *RM) updateLatestData(key string, data []*form.SaveInRedis) ([]*form.Sav
 					Title:  v2.Tags,
 					Aid:    v2.Id,
 				}
+				ad.Images = append(ad.Images, v2.Img)
 				data = append(data, ad)
 			}
 		}
@@ -299,6 +301,7 @@ func (r *RM) mergeData(key string) ([]*form.SaveInRedis, error) {
 				Title:  data.Tags,
 				Aid:    data.Id,
 			}
+			ad.Images = append(ad.Images, data.Img)
 			dataList = append(dataList, ad)
 		}
 	}
@@ -345,17 +348,21 @@ func (r *RM) Update(key, id, ut string) ([]form.SaveInRedis, error) {
 				UserId: data.UserId,
 				Title:  data.Tags,
 			}
+			ad.Images = append(ad.Images, data.Img)
 			dataList = append(dataList, ad)
 			break
 		}
 	}
 
-	b, err := json.Marshal(dataList)
-	if err := json.Unmarshal([]byte(result), &dataList); err != nil {
+	b, err := json.Marshal(&dataList)
+	if err != nil {
 		return dataList, err
 	}
+	//if err := json.Unmarshal([]byte(result), &dataList); err != nil {
+	//	return dataList, err
+	//}
 
-	if err := r.Set(key, b, time.Second*time.Duration(1209600)); err != nil {
+	if err := r.Set(key, b, 0); err != nil {
 		return dataList, err
 	}
 
@@ -1107,4 +1114,52 @@ func (r *RM) randomPick(s []*form.MsgBoard, n int) []*form.MsgBoard {
 func (r *RM) randomSubset(s []*form.MsgBoard) []*form.MsgBoard {
 	n := rand.IntN(len(s)) + 1
 	return r.randomPick(s, n)
+}
+
+// GetVenueImg 获取场地图片
+func (r *RM) GetVenueImg(key, aid, city string) error {
+	var allData []*form.SaveInRedis
+
+	result, err := r.Get(key)
+	if err != nil && !errors.Is(err, redis.Nil) {
+		return err
+	}
+
+	if result == "" {
+		return err
+	}
+
+	if err := json.Unmarshal([]byte(result), &allData); err != nil {
+		return err
+	}
+
+	for _, v := range allData {
+		if v.Id == aid && v.Img == "" {
+			searchImg, err := mapApi.NewMapApi(city, v.Title).GetGdSinglePlaceSearch()
+			if err != nil {
+				return err
+			}
+
+			if len(searchImg) == 0 {
+				return errors.New("未获取到图片")
+			}
+
+			if len(searchImg) > 0 {
+				v.Img = searchImg[0]
+				v.Images = append(v.Images, searchImg...)
+			}
+			break
+		}
+	}
+
+	b, err := json.Marshal(&allData)
+	if err != nil {
+		return err
+	}
+
+	if err := r.Set(key, b, 0); err != nil {
+		return err
+	}
+
+	return nil
 }

@@ -119,12 +119,66 @@ func main() {
 	mux.HandleFunc("/wx-user-info-update", handleWxUserInfoUpdate)
 	mux.HandleFunc("/update-sports-venue", handleUpdateSportsVenue)
 	mux.HandleFunc("/get-user-list", handleGetUserList)
+	mux.HandleFunc("/get-venue-img", handleGetVenueImg)
 
 	// 启动广播处理器
 	go handleBroadcast()
 
 	log.Println("Server started on :11806")
 	log.Fatal(http.ListenAndServe(":11806", mux))
+}
+
+// handleGetVenueImg 获取单个场地的图片,可能会失败
+func handleGetVenueImg(w http.ResponseWriter, r *http.Request) {
+	var rp = Resp{w: w}
+	if r.Method != http.MethodGet {
+		rp.h(Resp{
+			Msg:  "invalid request",
+			Code: 1001,
+			Data: "0",
+		})
+		return
+	}
+
+	uid := r.FormValue("uid")
+	aid := r.FormValue("aid")
+	city := r.FormValue("city")          // 城市的中文名
+	sportKey := r.FormValue("sport_key") // 篮球场: bks, 足球场: fbs...
+	if uid != config.Admin || aid == "" || city == "" || sportKey == "" {
+		rp.h(Resp{
+			Msg:  "invalid parameter",
+			Code: 1002,
+			Data: "0",
+		})
+		return
+	}
+
+	if err := redis.NewRM().GetWxOpenid(uid); err != nil {
+		rp.h(Resp{
+			Msg:  err.Error(),
+			Code: 1003,
+			Data: "0",
+		})
+		return
+	}
+
+	cityPy := pinyin.LazyPinyin(city, pinyin.NewArgs())
+	fullKey := fmt.Sprintf("%s_%s", strings.Join(cityPy, ""), sportKey) // 拼接的key：shenzhenshi_bks
+	if err := redis.NewRM().GetVenueImg(fullKey, aid, city); err != nil {
+		rp.h(Resp{
+			Msg:  err.Error(),
+			Code: 1004,
+			Data: "0",
+		})
+		return
+	}
+
+	rp.h(Resp{
+		Msg:  "ok",
+		Code: 1000,
+		Data: "0",
+	})
+
 }
 
 // handleGetUserList 获取所有用户
@@ -1313,7 +1367,6 @@ func handleAddAddrPass(w http.ResponseWriter, r *http.Request) {
 			})
 			return
 		}
-
 	}
 
 	// key:shenzhenshi_bks

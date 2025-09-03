@@ -163,35 +163,35 @@ func updateSquare() {
 
 func getAllData() {
 	k := []string{
-		"group_id_guangzhoushi_fbs",
-		"group_id_zhangshashi_bms",
-		"group_id_anyangshi_bks",
-		"group_id_shenzhenshi_bms",
-		"group_id_guangzhoushi_sws",
-		"group_id_shanghaishi_bks",
-		"group_id_shenzhenshi_gos",
-		"group_id_zhongqingshi_bks",
-		"group_id_zhangchunshi_bks",
-		"group_id_shenzhenshi_yjg",
-		"group_id_daqingshi_bks",
-		"group_id_guangzhoushi_bks",
-		"group_id_huizhoushi_bms",
-		"group_id_shenzhenshi_gym",
-		"group_id_shenzhenshi_fbs",
-		"group_id_jinhuashi_bks",
-		"group_id_chuzhoushi_bks",
-		"group_id_shenzhenshi_sws",
-		"group_id_taizhoushi_bks",
-		"group_id_zhongqingshi_fbs",
+		//"group_id_guangzhoushi_fbs",
+		//"group_id_zhangshashi_bms",
+		//"group_id_anyangshi_bks",
+		//"group_id_shenzhenshi_bms",
+		//"group_id_guangzhoushi_sws",
+		//"group_id_shanghaishi_bks",
+		//"group_id_shenzhenshi_gos",
+		//"group_id_zhongqingshi_bks",
+		//"group_id_zhangchunshi_bks",
+		//"group_id_shenzhenshi_yjg",
+		//"group_id_daqingshi_bks",
+		//"group_id_guangzhoushi_bks",
+		//"group_id_huizhoushi_bms",
+		//"group_id_shenzhenshi_gym",
+		//"group_id_shenzhenshi_fbs",
+		//"group_id_jinhuashi_bks",
+		//"group_id_chuzhoushi_bks",
+		//"group_id_shenzhenshi_sws",
+		//"group_id_taizhoushi_bks",
+		//"group_id_zhongqingshi_fbs",
 		"group_id_shenzhenshi_bks",
-		"group_id_heyuanshi_bks",
-		"group_id_changzhoushi_bks",
-		"group_id_shanghaishi_bms",
-		"group_id_chengdoushi_bks",
-		"group_id_guangzhoushi_yjg",
-		"group_id_shenzhenshi_tns",
-		"group_id_huizhoushi_bks",
-		"group_id_zhongqingshi_bms",
+		//"group_id_heyuanshi_bks",
+		//"group_id_changzhoushi_bks",
+		//"group_id_shanghaishi_bms",
+		//"group_id_chengdoushi_bks",
+		//"group_id_guangzhoushi_yjg",
+		//"group_id_shenzhenshi_tns",
+		//"group_id_huizhoushi_bks",
+		//"group_id_zhongqingshi_bms",
 	}
 
 	for _, vk := range k {
@@ -205,11 +205,19 @@ func getAllData() {
 			log.Fatalln(err)
 		}
 
-		//for _, vd := range data {
-		//	fmt.Println("------------------------------------------------------")
-		//	fmt.Println(vd.Title, vd.Addr, vd.Images, vd.Lat, vd.Lng)
-		//}
+		total := len(data)
+		var countImg int
 
+		for _, vd := range data {
+			if vd.Img != "" {
+				countImg++
+			}
+			fmt.Println("--------------------------------")
+			fmt.Println(vd.Title)
+
+		}
+
+		fmt.Printf("总：%d, 没有图片的：%d\n", total, total-countImg)
 		//b, err := json.Marshal(&data)
 		//if err != nil {
 		//	log.Fatalln(err)
@@ -219,7 +227,7 @@ func getAllData() {
 		//	log.Fatalln(err)
 		//}
 
-		log.Printf("%s , ok\n", vk)
+		//log.Printf("%s , ok\n", vk)
 	}
 
 }
@@ -263,23 +271,26 @@ func getCheckList() {
 		log.Fatalln(err)
 	}
 
-	//for _, v := range data {
-	//	//user := getUserInfo(v.UserId)
-	//	//if user.Img != "" {
-	//	//	v.UserImg = user.Img
-	//	//}
-	//	//if user.NickName != "" {
-	//	//	v.NickName = user.NickName
-	//	//}
-	//	//if v.UpdateType == "1" {
-	//	//	v.Content = "用户添加了新的场地"
-	//	//}
-	//	//if v.UpdateType == "2" {
-	//	//	v.Content = "用户更新了场地图片"
-	//	//}
-	//	//v.Time = time.Now().Format("2006-01-02 15:04:05")
-	//	fmt.Println(v.Id, v.IsRecord, v.Tags, v.UpdateType, v.SportKey)
-	//}
+	for _, v := range data {
+		//user := getUserInfo(v.UserId)
+		//if user.Img != "" {
+		//	v.UserImg = user.Img
+		//}
+		//if user.NickName != "" {
+		//	v.NickName = user.NickName
+		//}
+		//if v.UpdateType == "1" {
+		//	v.Content = "用户添加了新的场地"
+		//}
+		//if v.UpdateType == "2" {
+		//	v.Content = "用户更新了场地图片"
+		//}
+		if v.Time == "" {
+			v.Time = time.Now().Format("2006-01-02 15:04:05")
+		}
+
+		fmt.Println(v.Tags, v.Time)
+	}
 
 	b, err := json.Marshal(&data)
 	if err != nil {
