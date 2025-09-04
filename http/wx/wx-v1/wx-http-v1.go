@@ -1080,11 +1080,14 @@ func handleWxLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !openid.NewWhiteList(data.Openid).IsWhite() {
-		if err := ddw.NewDDWarn(fmt.Sprintf("用户id：%s，打开了小程序", data.Openid)).Send(); err != nil {
-			log.Println(err.Error())
+	go func() {
+		if !openid.NewWhiteList(data.Openid).IsWhite() {
+
+			if err := ddw.NewDDWarn(fmt.Sprintf("用户id：%s，打开了小程序", data.Openid)).Send(); err != nil {
+				log.Println(err.Error())
+			}
 		}
-	}
+	}()
 
 	rp.h(Resp{
 		Msg:       "ok",
@@ -1150,11 +1153,15 @@ func handleShowSportsSquare(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !openid.NewWhiteList(uid).IsWhite() {
-		if err := ddw.NewDDWarn(fmt.Sprintf("用户id：%s，城市：%s，选择了：%s运动", uid, city, keyWord)).Send(); err != nil {
-			log.Println(err.Error())
+	go func() {
+		if !openid.NewWhiteList(uid).IsWhite() {
+			if err := ddw.NewDDWarn(fmt.Sprintf("用户id：%s，城市：%s，选择了：%s运动", uid, city, keyWord)).Send(); err != nil {
+				log.Println(err.Error())
+			}
 		}
-	}
+	}()
+
+	go redis.NewRM().UpdateWxUser(uid, city)
 
 	rp.h(Resp{
 		Msg:       "ok",

@@ -535,9 +535,51 @@ func (r *RM) SetWxOpenid(wo *form.WxOpenidList) (*form.WxOpenidList, error) {
 	return fd, nil
 }
 
+func (r *RM) UpdateWxUser(id, city string) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	var data = make([]*form.WxOpenidList, 0)
+
+	result, err := r.Get(config.WxOPenIdKey)
+	if err != nil && !errors.Is(err, redis.Nil) {
+		log.Printf("[ERROR] get wx openid error, esg: '%s'\n", err.Error())
+		return
+	}
+
+	if result == "" {
+		log.Println("[INFO] get wx openid list empty")
+		return
+	}
+
+	if err := json.Unmarshal([]byte(result), &data); err != nil {
+		log.Printf("[ERROR] unmarshal openid list data error, esg: '%s'\n", err.Error())
+		return
+	}
+
+	for _, v := range data {
+		if v.Openid == id {
+			v.City = city
+			break
+		}
+	}
+
+	b, err := json.Marshal(&data)
+	if err != nil {
+		log.Printf("[ERROR] marshal openid list data error, esg: '%s'\n", err.Error())
+		return
+	}
+
+	if err := r.Set(config.WxOPenIdKey, b, 0); err != nil {
+		log.Printf("[ERROR] set openid list data error, esg: '%s'\n", err.Error())
+		return
+	}
+
+}
+
 // GetWxOpenid 微信用户的openid
 func (r *RM) GetWxOpenid(id string) error {
-	var data = make([]form.WxOpenidList, 0)
+	var data = make([]*form.WxOpenidList, 0)
 	result, err := r.Get(config.WxOPenIdKey)
 	if err != nil && !errors.Is(err, redis.Nil) {
 		return err
@@ -553,7 +595,7 @@ func (r *RM) GetWxOpenid(id string) error {
 			return err
 		}
 
-		return errors.New("请先登陆微信")
+		return errors.New("请先登陆微信1")
 	}
 
 	if err := json.Unmarshal([]byte(result), &data); err != nil {
@@ -569,7 +611,7 @@ func (r *RM) GetWxOpenid(id string) error {
 	}
 
 	if !isFind {
-		return errors.New("请先登陆微信")
+		return errors.New("请先登陆微信2")
 	}
 
 	return nil
