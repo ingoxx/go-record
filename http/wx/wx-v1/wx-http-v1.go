@@ -1166,7 +1166,7 @@ func handleShowSportsSquare(w http.ResponseWriter, r *http.Request) {
 	rp.h(Resp{
 		Msg:       "ok",
 		Code:      1000,
-		Data:      "0",
+		Data:      true,
 		OtherData: ol,
 	})
 }

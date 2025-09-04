@@ -673,13 +673,7 @@ func (r *RM) GetSportList() ([]form.SportList, error) {
 		{"name": "篮球场", "key": "bks", "checked": false, "icon": "🏀", "img": "https://ai.anythingai.online/static/profile3/main-bk.jpg"},
 		{"name": "游泳馆", "key": "sws", "checked": false, "icon": "🏊", "img": "https://ai.anythingai.online/static/profile3/swim.png"},
 		{"name": "羽毛球馆", "key": "bms", "checked": false, "icon": "🏸", "img": "https://ai.anythingai.online/static/profile3/badminton.png"},
-		{"name": "足球场", "key": "fbs", "checked": false, "icon": "⚽", "img": "https://ai.anythingai.online/static/profile3/football.png"},
-		{"name": "网球场", "key": "tns", "checked": false, "icon": "🎾", "img": "https://ai.anythingai.online/static/profile3/tennis.png"},
-		{"name": "高尔夫球场", "key": "gos", "checked": false, "icon": "🏌️", "img": "https://ai.anythingai.online/static/profile3/golf.png"},
-		{"name": "滑雪场", "key": "hxc", "checked": false, "icon": "⛷️", "img": "https://ai.anythingai.online/static/profile3/ski.png"},
-		{"name": "瑜伽馆", "key": "yjg", "checked": false, "icon": "🧘", "img": "https://ai.anythingai.online/static/profile3/yoga.png"},
-		{"name": "跆拳道馆", "key": "tqd", "checked": false, "icon": "🥋", "img": "https://ai.anythingai.online/static/profile3/taekwondo.png"},
-		{"name": "健身房", "key": "gym", "checked": false, "icon": "🏋️‍♂️", "img": "https://ai.anythingai.online/static/profile3/gym.png"}
+		{"name": "足球场", "key": "fbs", "checked": false, "icon": "⚽", "img": "https://ai.anythingai.online/static/profile3/football.png"}
 	]`
 	if err := json.Unmarshal([]byte(sports), &data); err != nil {
 		return data, err
