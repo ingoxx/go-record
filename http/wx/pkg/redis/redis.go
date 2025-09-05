@@ -414,6 +414,12 @@ func (r *RM) UserAddAddrReq(data *form.AddrListForm) error {
 		}
 	}
 
+	if data.UpdateType == "1" {
+		data.Content = fmt.Sprintf("用户在%s添加了场地图片", time.Now().Format("2006-01-02 15:04:05"))
+	} else if data.UpdateType == "2" {
+		data.Content = fmt.Sprintf("用户在%s更新了场地图片", time.Now().Format("2006-01-02 15:04:05"))
+	}
+
 	dataList = append(dataList, data)
 	b, err := json.Marshal(&dataList)
 	if err != nil {
@@ -669,11 +675,17 @@ func (r *RM) VerifyWxUser(hash string) (string, error) {
 // GetSportList 运动场地列表
 func (r *RM) GetSportList() ([]form.SportList, error) {
 	var data []form.SportList
+	//sports := `[
+	//	{"name": "篮球场", "key": "bks", "checked": false, "icon": "🏀", "img": "https://ai.anythingai.online/static/profile3/main-bk.jpg"},
+	//	{"name": "游泳馆", "key": "sws", "checked": false, "icon": "🏊", "img": "https://ai.anythingai.online/static/profile3/swim.png"},
+	//	{"name": "羽毛球馆", "key": "bms", "checked": false, "icon": "🏸", "img": "https://ai.anythingai.online/static/profile3/badminton.png"},
+	//	{"name": "足球场", "key": "fbs", "checked": false, "icon": "⚽", "img": "https://ai.anythingai.online/static/profile3/football.png"}
+	//]`
 	sports := `[
-		{"name": "篮球场", "key": "bks", "checked": false, "icon": "🏀", "img": "https://ai.anythingai.online/static/profile3/main-bk.jpg"},
-		{"name": "游泳馆", "key": "sws", "checked": false, "icon": "🏊", "img": "https://ai.anythingai.online/static/profile3/swim.png"},
-		{"name": "羽毛球馆", "key": "bms", "checked": false, "icon": "🏸", "img": "https://ai.anythingai.online/static/profile3/badminton.png"},
-		{"name": "足球场", "key": "fbs", "checked": false, "icon": "⚽", "img": "https://ai.anythingai.online/static/profile3/football.png"}
+		{"name": "🏀篮球场", "key": "bks", "checked": false, "icon": "🏀", "img": "https://ai.anythingai.online/static/profile3/bks-1.svg"},
+		{"name": "🏊游泳馆", "key": "sws", "checked": false, "icon": "🏊", "img": "https://ai.anythingai.online/static/profile3/sws-1.svg"},
+		{"name": "🏸羽毛球馆", "key": "bms", "checked": false, "icon": "🏸", "img": "https://ai.anythingai.online/static/profile3/bms-1.svg"},
+		{"name": "⚽足球场", "key": "fbs", "checked": false, "icon": "⚽", "img": "https://ai.anythingai.online/static/profile3/fbs-1.svg"}
 	]`
 	if err := json.Unmarshal([]byte(sports), &data); err != nil {
 		return data, err
