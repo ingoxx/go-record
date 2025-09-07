@@ -682,10 +682,10 @@ func (r *RM) GetSportList() ([]form.SportList, error) {
 	//	{"name": "足球场", "key": "fbs", "checked": false, "icon": "⚽", "img": "https://ai.anythingai.online/static/profile3/football.png"}
 	//]`
 	sports := `[
-		{"name": "🏀篮球场", "key": "bks", "checked": false, "icon": "🏀", "img": "https://ai.anythingai.online/static/profile3/bks-1.svg"},
-		{"name": "🏊游泳馆", "key": "sws", "checked": false, "icon": "🏊", "img": "https://ai.anythingai.online/static/profile3/sws-1.svg"},
-		{"name": "🏸羽毛球馆", "key": "bms", "checked": false, "icon": "🏸", "img": "https://ai.anythingai.online/static/profile3/bms-1.svg"},
-		{"name": "⚽足球场", "key": "fbs", "checked": false, "icon": "⚽", "img": "https://ai.anythingai.online/static/profile3/fbs-1.svg"}
+		{"title": "篮球场", "name": "🏀篮球场", "key": "bks", "checked": false, "icon": "🏀", "img": "https://ai.anythingai.online/static/profile3/main-bk.jpg", "sport_img": "https://ai.anythingai.online/static/profile3/bks-6.svg"},
+		{"title": "游泳馆", "name": "🏊游泳馆", "key": "sws", "checked": false, "icon": "🏊", "img": "https://ai.anythingai.online/static/profile3/swim.png", "sport_img": "https://ai.anythingai.online/static/profile3/swim-6.svg"},
+		{"title": "羽毛球馆", "name": "🏸羽毛球馆", "key": "bms", "checked": false, "icon": "🏸", "img": "https://ai.anythingai.online/static/profile3/badminton.png", "sport_img": "https://ai.anythingai.online/static/profile3/bms-6.svg"},
+		{"title": "足球场", "name": "⚽足球场", "key": "fbs", "checked": false, "icon": "⚽", "img": "https://ai.anythingai.online/static/profile3/football.png", "sport_img": "https://ai.anythingai.online/static/profile3/fbs-6.svg"}
 	]`
 	if err := json.Unmarshal([]byte(sports), &data); err != nil {
 		return data, err

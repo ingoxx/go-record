@@ -152,11 +152,13 @@ type Sports struct {
 }
 
 type SportList struct {
-	Name    string `json:"name"`
-	Key     string `json:"key"`
-	Icon    string `json:"icon"`
-	Img     string `json:"img"`
-	Checked bool   `json:"checked"`
+	Name     string `json:"name"`
+	Key      string `json:"key"`
+	Icon     string `json:"icon"`
+	Img      string `json:"img"`
+	Title    string `json:"title"`
+	SportImg string `json:"sport_img"`
+	Checked  bool   `json:"checked"`
 }
 
 type GroupOnlineStatus struct {
