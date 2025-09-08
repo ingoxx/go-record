@@ -173,6 +173,14 @@ func handleGetVenueImg(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	go func() {
+		if !openid.NewWhiteList(uid).IsWhite() {
+			if err := ddw.NewDDWarn(fmt.Sprintf("用户id：%s，场地id：%s，场地类型：%s，场地城市：%s，点击了获取场地图片按钮", uid, aid, sportKey, city)).Send(); err != nil {
+				log.Println(err.Error())
+			}
+		}
+	}()
+
 	rp.h(Resp{
 		Msg:  "ok",
 		Code: 1000,
@@ -295,11 +303,13 @@ func handleUpdateSportsVenue(w http.ResponseWriter, r *http.Request) {
 	data.CityPy = strings.Join(cityPy, "")
 	data.SportKey = fullKey
 
-	if !openid.NewWhiteList(uid).IsWhite() {
-		if err := ddw.NewDDWarn(fmt.Sprintf("用户id：%s更新了场地图片，场地id：%s，场地类型：%s，场地城市：%s，场地图片：%s", uid, data.Id, data.SportKey, data.City, data.Img)).Send(); err != nil {
-			log.Println(err.Error())
+	go func() {
+		if !openid.NewWhiteList(uid).IsWhite() {
+			if err := ddw.NewDDWarn(fmt.Sprintf("用户id：%s更新了场地图片，\n场地id：%s，\n场地类型：%s，\n场地城市：%s，\n场地图片：%s", uid, data.Id, data.SportKey, data.City, data.Img)).Send(); err != nil {
+				log.Println(err.Error())
+			}
 		}
-	}
+	}()
 
 	ol, err := redis.NewRM().UpdateVenueInfo(data)
 	if err := json.Unmarshal(b, &data); err != nil {
@@ -381,11 +391,13 @@ func handleWxUserInfoUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !openid.NewWhiteList(data.Openid).IsWhite() {
-		if err := ddw.NewDDWarn(fmt.Sprintf("用户id：%s，打开了小程序", data.Openid)).Send(); err != nil {
-			log.Println(err.Error())
+	go func() {
+		if !openid.NewWhiteList(data.Openid).IsWhite() {
+			if err := ddw.NewDDWarn(fmt.Sprintf("用户id：%s，打开了小程序", data.Openid)).Send(); err != nil {
+				log.Println(err.Error())
+			}
 		}
-	}
+	}()
 
 	rp.h(Resp{
 		Msg:       "ok",
@@ -457,11 +469,13 @@ func handleUserLikedReviews(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !openid.NewWhiteList(data.User).IsWhite() {
-		if err := ddw.NewDDWarn(fmt.Sprintf("用户: %s, \n群组：%s, \n点赞了评价：%s\n", data.User, data.GroupId, data.Evaluate)).Send(); err != nil {
-			log.Println(err.Error())
+	go func() {
+		if !openid.NewWhiteList(data.User).IsWhite() {
+			if err := ddw.NewDDWarn(fmt.Sprintf("用户: %s, \n群组：%s, \n点赞了评价：%s", data.User, data.GroupId, data.Evaluate)).Send(); err != nil {
+				log.Println(err.Error())
+			}
 		}
-	}
+	}()
 
 	ol, err := redis.NewRM().UserLikedReviews(data, sportKey)
 	if err != nil {
@@ -541,11 +555,13 @@ func handleUpdateUserReviews(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !openid.NewWhiteList(data.User).IsWhite() {
-		if err := ddw.NewDDWarn(fmt.Sprintf("用户: %s, \n群组：%s, \n提交了评价：%s\n", data.User, data.GroupId, data.Evaluate)).Send(); err != nil {
-			log.Println(err.Error())
+	go func() {
+		if !openid.NewWhiteList(data.User).IsWhite() {
+			if err := ddw.NewDDWarn(fmt.Sprintf("用户: %s, \n群组：%s, \n提交了评价：%s", data.User, data.GroupId, data.Evaluate)).Send(); err != nil {
+				log.Println(err.Error())
+			}
 		}
-	}
+	}()
 
 	if err := filter.LoadWordDict("./dict.txt"); err != nil {
 		log.Fatalln("无法读取脏字库文件", err.Error())
@@ -609,6 +625,14 @@ func handleGetUserReviews(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
+
+	go func() {
+		if !openid.NewWhiteList(uid).IsWhite() {
+			if err := ddw.NewDDWarn(fmt.Sprintf("用户: %s, 查看了场地评价", uid)).Send(); err != nil {
+				log.Println(err.Error())
+			}
+		}
+	}()
 
 	rp.h(Resp{
 		Msg:  "ok",
@@ -707,11 +731,13 @@ func handleWxUpload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !openid.NewWhiteList(uid).IsWhite() {
-		if err := ddw.NewDDWarn(fmt.Sprintf("用户: %s, 上传了头像\n", uid)).Send(); err != nil {
-			log.Println(err.Error())
+	go func() {
+		if !openid.NewWhiteList(uid).IsWhite() {
+			if err := ddw.NewDDWarn(fmt.Sprintf("用户: %s, 上传了头像", uid)).Send(); err != nil {
+				log.Println(err.Error())
+			}
 		}
-	}
+	}()
 
 	// 更新头像
 	if up == "1" {
@@ -812,11 +838,13 @@ func handleUserJoinGroup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !openid.NewWhiteList(data.User).IsWhite() {
-		if err := ddw.NewDDWarn(fmt.Sprintf("用户: %s, 群组：%s, 用户点击了组队按钮\n", data.User, data.GroupId)).Send(); err != nil {
-			log.Println(err.Error())
+	go func() {
+		if !openid.NewWhiteList(data.User).IsWhite() {
+			if err := ddw.NewDDWarn(fmt.Sprintf("用户: %s, 群组：%s, 用户点击了组队按钮", data.User, data.GroupId)).Send(); err != nil {
+				log.Println(err.Error())
+			}
 		}
-	}
+	}()
 
 	if data.NickName == "" {
 		data.NickName = eva.NewSportType("bks").RandomNickname()
@@ -896,6 +924,14 @@ func handleGetJoinUsers(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
+
+	go func() {
+		if !openid.NewWhiteList(uid).IsWhite() {
+			if err := ddw.NewDDWarn(fmt.Sprintf("用户id：%s，查看了组队信息", uid)).Send(); err != nil {
+				log.Println(err.Error())
+			}
+		}
+	}()
 
 	rp.h(Resp{
 		Msg:  "ok",
