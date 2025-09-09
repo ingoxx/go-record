@@ -56,11 +56,12 @@ type Message struct {
 
 // Resp 响应的数据结构
 type Resp struct {
-	w         http.ResponseWriter
-	OtherData interface{} `json:"other_data"`
-	Data      interface{} `json:"data"`
-	Msg       string      `json:"msg"`
-	Code      int         `json:"code"`
+	w          http.ResponseWriter
+	OtherData  interface{} `json:"other_data"`
+	FilterData interface{} `json:"filter_data"`
+	Data       interface{} `json:"data"`
+	Msg        string      `json:"msg"`
+	Code       int         `json:"code"`
 }
 
 func (r Resp) message(rd Resp) ([]byte, error) {
@@ -1200,10 +1201,11 @@ func handleShowSportsSquare(w http.ResponseWriter, r *http.Request) {
 	go redis.NewRM().UpdateWxUser(uid, city)
 
 	rp.h(Resp{
-		Msg:       "ok",
-		Code:      1000,
-		Data:      true,
-		OtherData: ol,
+		Msg:        "ok",
+		Code:       1000,
+		Data:       true,
+		OtherData:  ol,
+		FilterData: redis.NewRM().FilterVenueData(),
 	})
 }
 
