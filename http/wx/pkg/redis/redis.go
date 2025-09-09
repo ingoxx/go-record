@@ -1211,3 +1211,18 @@ func (r *RM) GetVenueImg(key, aid, city string) error {
 
 	return nil
 }
+
+func (r *RM) FilterVenueData() []*form.FilterField {
+	var data = make([]*form.FilterField, 3)
+	names := []string{"距离最近", "组队人数", "评价数量"}
+	for k, v := range names {
+		id := k + 1
+		f := &form.FilterField{
+			Id:   id,
+			Name: v,
+		}
+		data[k] = f
+	}
+
+	return data
+}

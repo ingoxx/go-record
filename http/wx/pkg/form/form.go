@@ -82,8 +82,8 @@ type Location struct {
 
 // SaveInRedis 统一的写入格式
 type SaveInRedis struct {
-	JoinUsers              []*JoinGroupUsers `json:"join_users"` // 某个运动场地，用户点击加入组件的人数
-	UserReviews            []*MsgBoard       `json:"user_reviews"`
+	JoinUsers              []*JoinGroupUsers `json:"join_users"`   // 某个运动场地，用户点击加入组件的人数
+	UserReviews            []*MsgBoard       `json:"user_reviews"` // 某个场地的所有评价
 	VenueUpdateUsers       []*AddrListForm   `json:"venue_update_users"`
 	Tags                   []string          `json:"tags"`
 	Images                 []string          `json:"images"`
@@ -197,4 +197,9 @@ type UpdateVenueInfo struct {
 	SportKey string `json:"sport_key" validate:"required"` // 运动类型: 篮球，足球....
 	CityPy   string `json:"city_py"`                       // 城市的拼音名字: shenzhenshi
 	Content  string `json:"content"`                       // 更新内容,目前只能统一更新图片,这里都写: 更新了场地图片
+}
+
+type FilterField struct {
+	Id   int    `json:"id"`
+	Name string `json:"name"`
 }
