@@ -163,6 +163,7 @@ type SportList struct {
 
 type GroupOnlineStatus struct {
 	GroupId    string `json:"group_id"`
+	VenueName  string `json:"venue_name"`
 	OnlineUser string `json:"online_user"`
 }
 

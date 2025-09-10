@@ -51,6 +51,8 @@ type Message struct {
 	Time      string `json:"time"`
 	Type      string `json:"type"`
 	AvaImg    string `json:"ava_img"`
+	City      string `json:"city"`
+	SportKey  string `json:"sport_key"`
 	UserCount int    `json:"user_count"` // 当前群人数
 }
 
@@ -1003,7 +1005,9 @@ func handleAllOnlineData(w http.ResponseWriter, r *http.Request) {
 	}
 
 	uid := r.FormValue("uid")
-	if uid == "" {
+	sportKey := r.FormValue("key")
+	city := r.FormValue("city") // 中文
+	if uid == "" || sportKey == "" || city == "" {
 		rp.h(Resp{
 			Msg:  "invalid parameter",
 			Code: 1002,
@@ -1019,7 +1023,11 @@ func handleAllOnlineData(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	data, err := redis.NewRM().GetAllOnlineData()
+
+	cityPy := pinyin.LazyPinyin(city, pinyin.NewArgs())
+	fullKey := fmt.Sprintf("%s_%s", strings.Join(cityPy, ""), sportKey)
+
+	data, err := redis.NewRM().GetAllOnlineData(fullKey)
 	if err != nil {
 		rp.h(Resp{
 			Msg:  err.Error(),

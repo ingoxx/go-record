@@ -695,7 +695,7 @@ func (r *RM) GetSportList() ([]form.SportList, error) {
 }
 
 // GetAllOnlineData 获取所有在线人数的key
-func (r *RM) GetAllOnlineData() ([]form.GroupOnlineStatus, error) {
+func (r *RM) GetAllOnlineData(key string) ([]form.GroupOnlineStatus, error) {
 	var cursor uint64
 	var matchingKeys []string
 	var onlineStatus []form.GroupOnlineStatus
@@ -705,7 +705,7 @@ func (r *RM) GetAllOnlineData() ([]form.GroupOnlineStatus, error) {
 		// 使用 Scan 方法，传入游标、匹配模式和建议的单次扫描数量
 		keys, nextCursor, err := rds.Scan(cursor, matchPattern, 10).Result()
 		if err != nil {
-			panic(err)
+			return onlineStatus, err
 		}
 
 		// 将本次扫描到的 key 追加到结果列表
@@ -722,10 +722,17 @@ func (r *RM) GetAllOnlineData() ([]form.GroupOnlineStatus, error) {
 
 	for _, v := range matchingKeys {
 		online, err := rds.Get(v).Result()
+		//gid := strings.ReplaceAll(v, "group_id_online_", "")
+
+		//name, err := r.getVenueName(key, gid)
+		//if err != nil {
+		//	return onlineStatus, err
+		//}
 		if err == nil {
 			d := form.GroupOnlineStatus{
 				GroupId:    v,
 				OnlineUser: online,
+				//VenueName:  name,
 			}
 			onlineStatus = append(onlineStatus, d)
 		}
@@ -1225,4 +1232,34 @@ func (r *RM) FilterVenueData() []*form.FilterField {
 	}
 
 	return data
+}
+
+func (r *RM) getVenueName(key, gid string) (string, error) {
+	var name string
+	result, err := r.Get(key)
+	if err != nil && !errors.Is(err, redis.Nil) {
+		return name, err
+	}
+
+	if result == "" {
+		return name, errors.New("没有数据")
+	}
+
+	var allData []*form.SaveInRedis
+	if err := json.Unmarshal([]byte(result), &allData); err != nil {
+		return name, err
+	}
+
+	for _, v := range allData {
+		if v.Id == gid {
+			name = v.Title
+			break
+		}
+	}
+
+	if name == "" {
+		return name, errors.New("未知场地名")
+	}
+
+	return name, nil
 }
