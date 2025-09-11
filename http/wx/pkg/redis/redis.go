@@ -195,11 +195,22 @@ func (r *RM) getVenueInfo(data []*form.SaveInRedis, lat, lng, sportKey string) (
 
 	for _, v := range someData {
 		// 统计当前在线人数
-		online, err := r.GetGroupOnline(v.Id)
-		if err != nil {
+		//online, err := r.GetGroupOnline(v.Id)
+		//if err != nil {
+		//	return data, err
+		//}
+		//v.Online = online
+		v.Online = "0"
+
+		sd := &form.OnlineData{
+			Id:       v.Id,
+			Title:    v.Title,
+			SportKey: sportKey,
+			Online:   0,
+		}
+		if _, err := r.GetGroupOnline2(sd); err != nil {
 			return data, err
 		}
-		v.Online = online
 
 		//统计加入组队的人数
 		users, err := r.GetJoinGroupUsers(v.Id)
@@ -642,6 +653,50 @@ func (r *RM) GetGroupOnline(key string) (string, error) {
 	return result, nil
 }
 
+// GetGroupOnline2 获取在线人数
+func (r *RM) GetGroupOnline2(data *form.OnlineData) (*form.OnlineData, error) {
+	gn := fmt.Sprintf("%s_%s", config.OnlineKey, data.Id)
+	result, err := r.Get(gn)
+	if err != nil && !errors.Is(err, redis.Nil) {
+		return data, err
+	}
+
+	if result == "" {
+		b, err := json.Marshal(&data)
+		if err != nil {
+			log.Println("Marshal err >>> ", err)
+			return data, err
+		}
+
+		if err := r.Set(gn, b, time.Second*time.Duration(7200)); err != nil {
+			return data, err
+		}
+
+		return data, nil
+	}
+
+	if err := json.Unmarshal([]byte(result), &data); err != nil {
+		return data, err
+	}
+
+	return data, nil
+}
+
+// UpdateGroupOnline 更新在线人数
+func (r *RM) UpdateGroupOnline(data *form.OnlineData) error {
+	gn := fmt.Sprintf("%s_%s", config.OnlineKey, data.Id)
+	b, err := json.Marshal(&data)
+	if err != nil {
+		return err
+	}
+
+	if err := r.Set(gn, b, time.Second*time.Duration(7200)); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // VerifyWxUser 验证微信用户openid
 func (r *RM) VerifyWxUser(hash string) (string, error) {
 	var data = make([]form.WxOpenidList, 0)
@@ -735,6 +790,52 @@ func (r *RM) GetAllOnlineData(key string) ([]form.GroupOnlineStatus, error) {
 				//VenueName:  name,
 			}
 			onlineStatus = append(onlineStatus, d)
+		}
+	}
+
+	return onlineStatus, nil
+}
+
+// GetAllOnlineData2 获取所有在线人数的key
+func (r *RM) GetAllOnlineData2(key string) ([]*form.OnlineData, error) {
+	var cursor uint64
+	var matchingKeys []string
+	var od *form.OnlineData
+	var onlineStatus []*form.OnlineData
+	matchPattern := "group_id_online_*" // 定义你的匹配模式
+
+	for {
+		// 使用 Scan 方法，传入游标、匹配模式和建议的单次扫描数量
+		keys, nextCursor, err := rds.Scan(cursor, matchPattern, 10).Result()
+		if err != nil {
+			return onlineStatus, err
+		}
+
+		// 将本次扫描到的 key 追加到结果列表
+		matchingKeys = append(matchingKeys, keys...)
+
+		// 如果游标返回 0，说明迭代完成
+		if nextCursor == 0 {
+			break
+		}
+
+		// 更新游标以进行下一次迭代
+		cursor = nextCursor
+	}
+
+	for _, v := range matchingKeys {
+		online, err := rds.Get(v).Result()
+		//gid := strings.ReplaceAll(v, "group_id_online_", "")
+
+		//name, err := r.getVenueName(key, gid)
+		//if err != nil {
+		//	return onlineStatus, err
+		//}
+		if err == nil {
+			if err := json.Unmarshal([]byte(online), &od); err != nil {
+				return onlineStatus, err
+			}
+			onlineStatus = append(onlineStatus, od)
 		}
 	}
 

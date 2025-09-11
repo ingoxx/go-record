@@ -51,8 +51,9 @@ type Message struct {
 	Time      string `json:"time"`
 	Type      string `json:"type"`
 	AvaImg    string `json:"ava_img"`
-	City      string `json:"city"`
-	SportKey  string `json:"sport_key"`
+	City      string `json:"city"`      // 中文城市名：深圳市
+	SportKey  string `json:"sport_key"` // 篮球：bks...
+	VenueName string `json:"venue_name"`
 	UserCount int    `json:"user_count"` // 当前群人数
 }
 
@@ -205,14 +206,14 @@ func handleGetUserList(w http.ResponseWriter, r *http.Request) {
 	}
 
 	uid := r.FormValue("uid")
-	if uid != config.Admin {
-		rp.h(Resp{
-			Msg:  "invalid parameter",
-			Code: 1002,
-			Data: "0",
-		})
-		return
-	}
+	//if uid != config.Admin {
+	//	rp.h(Resp{
+	//		Msg:  "invalid parameter",
+	//		Code: 1002,
+	//		Data: "0",
+	//	})
+	//	return
+	//}
 
 	if err := redis.NewRM().GetWxOpenid(uid); err != nil {
 		rp.h(Resp{
@@ -1027,7 +1028,7 @@ func handleAllOnlineData(w http.ResponseWriter, r *http.Request) {
 	cityPy := pinyin.LazyPinyin(city, pinyin.NewArgs())
 	fullKey := fmt.Sprintf("%s_%s", strings.Join(cityPy, ""), sportKey)
 
-	data, err := redis.NewRM().GetAllOnlineData(fullKey)
+	data, err := redis.NewRM().GetAllOnlineData2(fullKey)
 	if err != nil {
 		rp.h(Resp{
 			Msg:  err.Error(),
@@ -1188,6 +1189,7 @@ func handleShowSportsSquare(w http.ResponseWriter, r *http.Request) {
 
 	cityPy := pinyin.LazyPinyin(city, pinyin.NewArgs())
 	fullKey := fmt.Sprintf("%s_%s", strings.Join(cityPy, ""), sportKey) // 拼接的key：shenzhenshi_bks
+
 	ol, _, err := redis.NewRM().GetAllData(fullKey, city, keyWord, lat, lng, sportKey)
 	if err != nil {
 		rp.h(Resp{
@@ -1651,10 +1653,20 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 	group.Clients[ws] = true
 	userCount := len(group.Clients)
 	if groupID != "" {
-		gn := fmt.Sprintf("%s_%s", config.OnlineKey, groupID)
-		if err := redis.NewRM().Set(gn, userCount, time.Second*time.Duration(7200)); err != nil {
+		//gn := fmt.Sprintf("%s_%s", config.OnlineKey, groupID)
+		//if err := redis.NewRM().Set(gn, userCount, time.Second*time.Duration(7200)); err != nil {
+		//	log.Printf("[ERROR] 写入redis失败, 错误信息：%v", err)
+		//}
+		sd := &form.OnlineData{
+			Id:       groupID,
+			Title:    initMsg.VenueName,
+			SportKey: initMsg.SportKey,
+			Online:   userCount,
+		}
+		if err := redis.NewRM().UpdateGroupOnline(sd); err != nil {
 			log.Printf("[ERROR] 写入redis失败, 错误信息：%v", err)
 		}
+
 	}
 	group.Lock.Unlock()
 
@@ -1688,10 +1700,20 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 			userCount = len(group.Clients)
 			log.Printf("用户：%s, 组：%s, 当前人数: %d,  断开连接", initMsg.UserID, initMsg.GroupID, userCount)
 			if msg.GroupID != "" {
-				gn := fmt.Sprintf("%s_%s", config.OnlineKey, msg.GroupID)
-				if err := redis.NewRM().Set(gn, userCount, time.Second*time.Duration(7200)); err != nil {
+				//gn := fmt.Sprintf("%s_%s", config.OnlineKey, msg.GroupID)
+				//if err := redis.NewRM().Set(gn, userCount, time.Second*time.Duration(7200)); err != nil {
+				//	log.Printf("[ERROR] 写入redis失败, 错误信息：%v", err)
+				//}
+				sd := &form.OnlineData{
+					Id:       msg.GroupID,
+					Title:    msg.VenueName,
+					SportKey: msg.SportKey,
+					Online:   userCount,
+				}
+				if err := redis.NewRM().UpdateGroupOnline(sd); err != nil {
 					log.Printf("[ERROR] 写入redis失败, 错误信息：%v", err)
 				}
+
 			}
 			group.Lock.Unlock()
 
@@ -1735,10 +1757,20 @@ func handleBroadcast() {
 		groupsMu.Lock()
 		group, ok := groups[groupID]
 		if msg.GroupID != "" {
-			gn := fmt.Sprintf("%s_%s", config.OnlineKey, msg.GroupID)
-			if err := redis.NewRM().Set(gn, msg.UserCount, time.Second*time.Duration(7200)); err != nil {
-				log.Println("[ERROR] fail to save user count.")
+			//gn := fmt.Sprintf("%s_%s", config.OnlineKey, msg.GroupID)
+			//if err := redis.NewRM().Set(gn, msg.UserCount, time.Second*time.Duration(7200)); err != nil {
+			//	log.Println("[ERROR] fail to save user count.")
+			//}
+			sd := &form.OnlineData{
+				Id:       msg.GroupID,
+				Title:    msg.VenueName,
+				SportKey: msg.SportKey,
+				Online:   msg.UserCount,
 			}
+			if err := redis.NewRM().UpdateGroupOnline(sd); err != nil {
+				log.Printf("[ERROR] 写入redis失败, 错误信息：%v", err)
+			}
+
 		}
 		groupsMu.Unlock()
 		if !ok {
