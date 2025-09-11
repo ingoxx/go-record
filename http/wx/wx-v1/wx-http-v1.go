@@ -62,6 +62,7 @@ type Resp struct {
 	w          http.ResponseWriter
 	OtherData  interface{} `json:"other_data"`
 	FilterData interface{} `json:"filter_data"`
+	Venues     interface{} `json:"venues"`
 	Data       interface{} `json:"data"`
 	Msg        string      `json:"msg"`
 	Code       int         `json:"code"`
@@ -1200,6 +1201,19 @@ func handleShowSportsSquare(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var venues = make([]*form.OnlineData, 0, 15)
+	if uid == config.Admin {
+		venues, err = redis.NewRM().GetAllOnlineData2(fullKey)
+		if err != nil {
+			rp.h(Resp{
+				Msg:  err.Error(),
+				Code: 1005,
+				Data: "0",
+			})
+			return
+		}
+	}
+
 	go func() {
 		if !openid.NewWhiteList(uid).IsWhite() {
 			if err := ddw.NewDDWarn(fmt.Sprintf("用户id：%s，城市：%s，选择了：%s运动", uid, city, keyWord)).Send(); err != nil {
@@ -1216,6 +1230,7 @@ func handleShowSportsSquare(w http.ResponseWriter, r *http.Request) {
 		Data:       true,
 		OtherData:  ol,
 		FilterData: redis.NewRM().FilterVenueData(),
+		Venues:     venues,
 	})
 }
 
