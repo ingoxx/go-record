@@ -664,7 +664,6 @@ func (r *RM) GetGroupOnline2(data *form.OnlineData) (*form.OnlineData, error) {
 	if result == "" {
 		b, err := json.Marshal(&data)
 		if err != nil {
-			log.Println("Marshal err >>> ", err)
 			return data, err
 		}
 
@@ -684,12 +683,34 @@ func (r *RM) GetGroupOnline2(data *form.OnlineData) (*form.OnlineData, error) {
 
 // UpdateGroupOnline 更新在线人数
 func (r *RM) UpdateGroupOnline(data *form.OnlineData) error {
+	var fd *form.OnlineData
 	gn := fmt.Sprintf("%s_%s", config.OnlineKey, data.Id)
-	b, err := json.Marshal(&data)
-	if err != nil {
+	result, err := r.Get(gn)
+	if err != nil && !errors.Is(err, redis.Nil) {
 		return err
 	}
 
+	if result == "" {
+		b, err := json.Marshal(&data)
+		if err != nil {
+			return err
+		}
+		if err := r.Set(gn, b, time.Second*time.Duration(7200)); err != nil {
+			return err
+		}
+
+		return nil
+	}
+
+	if err := json.Unmarshal([]byte(result), &fd); err != nil {
+		return err
+	}
+
+	fd.Online = data.Online
+	b, err := json.Marshal(&fd)
+	if err != nil {
+		return err
+	}
 	if err := r.Set(gn, b, time.Second*time.Duration(7200)); err != nil {
 		return err
 	}
@@ -800,7 +821,7 @@ func (r *RM) GetAllOnlineData(key string) ([]form.GroupOnlineStatus, error) {
 func (r *RM) GetAllOnlineData2(key string) ([]*form.OnlineData, error) {
 	var cursor uint64
 	var matchingKeys []string
-	var od *form.OnlineData
+
 	var onlineStatus []*form.OnlineData
 	matchPattern := "group_id_online_*" // 定义你的匹配模式
 
@@ -824,13 +845,8 @@ func (r *RM) GetAllOnlineData2(key string) ([]*form.OnlineData, error) {
 	}
 
 	for _, v := range matchingKeys {
+		var od *form.OnlineData
 		online, err := rds.Get(v).Result()
-		//gid := strings.ReplaceAll(v, "group_id_online_", "")
-
-		//name, err := r.getVenueName(key, gid)
-		//if err != nil {
-		//	return onlineStatus, err
-		//}
 		if err == nil {
 			if err := json.Unmarshal([]byte(online), &od); err != nil {
 				return onlineStatus, err

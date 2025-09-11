@@ -1663,6 +1663,7 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 			SportKey: initMsg.SportKey,
 			Online:   userCount,
 		}
+		log.Println("sd 11 >>> ", *sd)
 		if err := redis.NewRM().UpdateGroupOnline(sd); err != nil {
 			log.Printf("[ERROR] 写入redis失败, 错误信息：%v", err)
 		}
@@ -1677,6 +1678,11 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 		GroupID:   groupID,
 		Type:      "count",
 		UserCount: userCount,
+		VenueName: initMsg.VenueName,
+		SportKey:  initMsg.SportKey,
+		NickName:  initMsg.NickName,
+		AvaImg:    initMsg.AvaImg,
+		City:      initMsg.City,
 	}
 
 	// 先把历史消息发给新连接（可选）
@@ -1722,6 +1728,11 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 				GroupID:   groupID,
 				Type:      "count",
 				UserCount: userCount,
+				VenueName: msg.VenueName,
+				SportKey:  msg.SportKey,
+				NickName:  msg.NickName,
+				AvaImg:    msg.AvaImg,
+				City:      msg.City,
 			}
 
 			break
