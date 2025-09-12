@@ -110,6 +110,7 @@ func main() {
 	mux.HandleFunc("/get-join-users", handleGetJoinUsers)
 	mux.HandleFunc("/user-join-group", handleUserJoinGroup)
 	mux.HandleFunc("/get-all-online-data", handleAllOnlineData)
+	mux.HandleFunc("/get-online-data", handleOnlineData)
 	mux.HandleFunc("/user-add-square", handleAddSquare)
 	mux.HandleFunc("/check-list", handleCheckAddAddrList)
 	mux.HandleFunc("/add-square-refuse", handleAddAddrRefuse)
@@ -994,6 +995,86 @@ func handleGetAllSports(w http.ResponseWriter, r *http.Request) {
 
 }
 
+// handleOnlineData
+func handleOnlineData(w http.ResponseWriter, r *http.Request) {
+	var rp = Resp{w: w}
+	if r.Method != http.MethodPost {
+		rp.h(Resp{
+			Msg:  "invalid request",
+			Code: 1001,
+			Data: "0",
+		})
+		return
+	}
+
+	uid := r.FormValue("uid")
+	if uid == "" {
+		rp.h(Resp{
+			Msg:  "invalid parameter",
+			Code: 1002,
+			Data: "0",
+		})
+		return
+	}
+
+	if err := redis.NewRM().GetWxOpenid(uid); err != nil {
+		rp.h(Resp{
+			Msg:  err.Error(),
+			Code: 1003,
+			Data: "0",
+		})
+		return
+	}
+
+	b, err := io.ReadAll(r.Body)
+	if err != nil {
+		rp.h(Resp{
+			Msg:  err.Error(),
+			Code: 1004,
+			Data: "0",
+		})
+		return
+	}
+
+	defer r.Body.Close()
+
+	var data *form.UserGetOnlineData
+	if err := json.Unmarshal(b, &data); err != nil {
+		rp.h(Resp{
+			Msg:  err.Error(),
+			Code: 1005,
+			Data: "0",
+		})
+		return
+	}
+
+	if err := validate.Struct(data); err != nil {
+		rp.h(Resp{
+			Msg:  err.Error(),
+			Code: 1006,
+			Data: "0",
+		})
+		return
+	}
+
+	ad, err := redis.NewRM().GetAllOnlineData3(data.Id)
+	if err != nil {
+		rp.h(Resp{
+			Msg:  err.Error(),
+			Code: 1007,
+			Data: "0",
+		})
+		return
+	}
+
+	rp.h(Resp{
+		Msg:  "ok",
+		Code: 1000,
+		Data: ad,
+	})
+
+}
+
 // handleAllOnlineData 获取所有的在线人数数据
 func handleAllOnlineData(w http.ResponseWriter, r *http.Request) {
 	var rp = Resp{w: w}
@@ -1017,6 +1098,7 @@ func handleAllOnlineData(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
+
 	if err := redis.NewRM().GetWxOpenid(uid); err != nil {
 		rp.h(Resp{
 			Msg:  err.Error(),
@@ -1227,7 +1309,7 @@ func handleShowSportsSquare(w http.ResponseWriter, r *http.Request) {
 	rp.h(Resp{
 		Msg:        "ok",
 		Code:       1000,
-		Data:       true,
+		Data:       false,
 		OtherData:  ol,
 		FilterData: redis.NewRM().FilterVenueData(),
 		Venues:     venues,
@@ -1678,7 +1760,6 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 			SportKey: initMsg.SportKey,
 			Online:   userCount,
 		}
-		log.Println("sd 11 >>> ", *sd)
 		if err := redis.NewRM().UpdateGroupOnline(sd); err != nil {
 			log.Printf("[ERROR] 写入redis失败, 错误信息：%v", err)
 		}

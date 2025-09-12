@@ -80,6 +80,13 @@ func (s SportType) DefaultEvaBoard() ([]*form.MsgBoard, error) {
 			{"evaluate_id": "aaa", "is_like": false, "like": 0, "group_id": "aaa-bbb-ccc-ddd-eee", "user": "222", "evaluate": "还行吧l_l", "img": "https://mmbiz.qpic.cn/mmbiz/icTdbqWNOwNRna42FI242Lcia07jQodd2FJGIYQfG0LAJGFxM4FbnQP6yfMxBgJ0F3YRqJCJ1aPAK2dQagdusBZg/0", "time": "2024-04-05 16:32:15"}
 		]`
 	}
+	if s.Name == "rcg" {
+		data = `[
+			{"evaluate_id": "rwt56urt", "is_like": false, "like": 0, "group_id": "aaa-bbb-ccc-ddd-eee", "user": "猴哥", "evaluate": "大哥跟牛一样", "img": "https://mmbiz.qpic.cn/mmbiz/icTdbqWNOwNRna42FI242Lcia07jQodd2FJGIYQfG0LAJGFxM4FbnQP6yfMxBgJ0F3YRqJCJ1aPAK2dQagdusBZg/0", "time": "2024-04-05 16:32:15"},
+		  {"evaluate_id": "w7utrwt5", "is_like": false, "like": 0, "group_id": "aaa-bbb-ccc-ddd-eee", "user": "高尔夫穷人", "evaluate": "起飞", "img": "https://mmbiz.qpic.cn/mmbiz/icTdbqWNOwNRna42FI242Lcia07jQodd2FJGIYQfG0LAJGFxM4FbnQP6yfMxBgJ0F3YRqJCJ1aPAK2dQagdusBZg/0", "time": "2024-04-05 16:32:15"},
+			{"evaluate_id": "aaa", "is_like": false, "like": 0, "group_id": "aaa-bbb-ccc-ddd-eee", "user": "222", "evaluate": "快来攀岩", "img": "https://mmbiz.qpic.cn/mmbiz/icTdbqWNOwNRna42FI242Lcia07jQodd2FJGIYQfG0LAJGFxM4FbnQP6yfMxBgJ0F3YRqJCJ1aPAK2dQagdusBZg/0", "time": "2024-04-05 16:32:15"}
+		]`
+	}
 	if s.Name == "hxc" {
 		data = `[
   { "evaluate_id": "7u84yk", "is_like": false, "like": 0, "group_id": "aaa-bbb-ccc-ddd-eee", "user": "雪地翻滚王", "evaluate": "本来是来滑雪的，结果一路滚下山比滑还快", "img": "https://mmbiz.qpic.cn/mmbiz/icTdbqWNOwNRna42FI242Lcia07jQodd2FJGIYQfG0LAJGFxM4FbnQP6yfMxBgJ0F3YRqJCJ1aPAK2dQagdusBZg/0", "time": "2024-04-05 16:32:15"},

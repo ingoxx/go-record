@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/ingoxx/go-record/http/wx/pkg/config"
@@ -10,95 +9,71 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"net/url"
-	"strconv"
+	"time"
 )
 
-type BdMapApi struct {
+type TxMapApi struct {
 	City    string
 	KeyWord string
 	Url     string
 }
 
-func NewBdMapApi(url, city, keyWord string) BdMapApi {
-	return BdMapApi{
+func NewTxMapApi(url, city, keyWord string) TxMapApi {
+	return TxMapApi{
 		City:    city,
 		KeyWord: keyWord,
 		Url:     url,
 	}
 }
 
-func (t BdMapApi) KeyWordSearch() ([]*form.SaveInRedis, error) {
-	var fd form.BdAPIResponse
+func (t TxMapApi) KeyWordSearch() ([]*form.SaveInRedis, error) {
+	var fd form.TxAPIResponse
 	var sd = make([]*form.SaveInRedis, 0, 100)
-	uri := "/api_place_pro/v1/region"
-	var offset int
+	offset := 1
 
-	for offset <= 6 {
-		fullURL := t.Url + uri + "?" + t.buildData(offset)
-		response, err := http.Get(fullURL)
+	for offset <= 5 {
+		url := fmt.Sprintf("%s/ws/place/v1/suggestion?region=%s&keyword=%s&key=%s&page_size=20&page_index=%d", t.Url, t.City, t.KeyWord, config.QqKey, offset)
+		resp, err := http.Get(url)
 		if err != nil {
 			return sd, err
 		}
 
-		if response.StatusCode != http.StatusOK {
-			return sd, errors.New("请求失败")
-		}
+		defer resp.Body.Close()
 
-		defer response.Body.Close()
-
-		body, err := io.ReadAll(response.Body)
+		b, err := io.ReadAll(resp.Body)
 		if err != nil {
 			return sd, err
 		}
 
-		if err := json.Unmarshal(body, &fd); err != nil {
+		if err := json.Unmarshal(b, &fd); err != nil {
 			return sd, err
 		}
 
 		for _, v := range fd.Data {
 			u4 := uuid.New()
-			addr := fmt.Sprintf("%s%s%s%s", v.City, v.Area, v.Town, v.Name)
 			sdd := &form.SaveInRedis{
 				Id:     u4.String(),
 				UserId: config.Admin,
-				Addr:   addr,
+				Addr:   v.Address,
 				Lat:    v.Location.Lat,
 				Lng:    v.Location.Lng,
-				Title:  v.Name,
-				Tags:   []string{v.Name},
+				Title:  v.Title,
+				Tags:   []string{v.Title},
 				Img:    "",
 				Aid:    v.ID,
-				Images: []string{},
 			}
 			sd = append(sd, sdd)
 		}
 
-		offset += 1
+		offset++
+		time.Sleep(time.Second)
 	}
 
 	return sd, nil
 }
 
-func (t BdMapApi) buildData(offset int) string {
-	ost := strconv.Itoa(offset)
-	params := url.Values{}
-	params.Set("page_num", ost)
-	params.Set("page_size", "20")
-	params.Set("region_limit", "true")
-	params.Set("scope", "2")
-	params.Set("output", "json")
-	params.Set("extensions_adcode", "true")
-	params.Set("region", t.City)
-	params.Set("query", t.KeyWord)
-	//params.Set("ak", "nMNn6CW6pnnJxB3DIxKdIDLg3iw6RFso")
-	params.Set("ak", config.BdKey)
-
-	return params.Encode()
-}
-
 func main() {
-	search, err := NewBdMapApi("https://api.map.baidu.com", "深圳市", "篮球场").KeyWordSearch()
+	search, err := NewTxMapApi("https://apis.map.qq.com", "深圳市", "攀岩馆").KeyWordSearch()
 	if err != nil {
 		log.Fatalln(err)
 	}

@@ -17,6 +17,7 @@ import (
 	"math/rand/v2"
 	"sort"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 )
@@ -140,7 +141,7 @@ func (r *RM) GetAllData(key, cnKey, keyWord, lat, lng, sportKey string) ([]*form
 			return allData, result, err
 		}
 
-		gd, err := r.getVenueInfo(sd, lat, lng, sportKey)
+		gd, err := r.getVenueInfo(sd, lat, lng, sportKey, cnKey)
 		if err != nil {
 			return gd, string(b), err
 		}
@@ -153,7 +154,7 @@ func (r *RM) GetAllData(key, cnKey, keyWord, lat, lng, sportKey string) ([]*form
 		return allData, result, err
 	}
 
-	nd, err := r.getVenueInfo(allData, lat, lng, sportKey)
+	nd, err := r.getVenueInfo(allData, lat, lng, sportKey, cnKey)
 	if err != nil {
 		return nd, result, err
 	}
@@ -161,7 +162,7 @@ func (r *RM) GetAllData(key, cnKey, keyWord, lat, lng, sportKey string) ([]*form
 	return nd, result, nil
 }
 
-func (r *RM) getVenueInfo(data []*form.SaveInRedis, lat, lng, sportKey string) ([]*form.SaveInRedis, error) {
+func (r *RM) getVenueInfo(data []*form.SaveInRedis, lat, lng, sportKey, cnKey string) ([]*form.SaveInRedis, error) {
 	lat1, err := strconv.ParseFloat(lat, 64)
 	if err != nil {
 		return data, err
@@ -205,6 +206,7 @@ func (r *RM) getVenueInfo(data []*form.SaveInRedis, lat, lng, sportKey string) (
 		sd := &form.OnlineData{
 			Id:       v.Id,
 			Title:    v.Title,
+			City:     cnKey,
 			SportKey: sportKey,
 			Online:   0,
 		}
@@ -761,6 +763,7 @@ func (r *RM) GetSportList() ([]form.SportList, error) {
 		{"title": "篮球场", "name": "🏀篮球场", "key": "bks", "checked": false, "icon": "🏀", "img": "https://ai.anythingai.online/static/profile3/main-bk.jpg", "sport_img": "https://ai.anythingai.online/static/profile3/bks-6.svg"},
 		{"title": "游泳馆", "name": "🏊游泳馆", "key": "sws", "checked": false, "icon": "🏊", "img": "https://ai.anythingai.online/static/profile3/swim.png", "sport_img": "https://ai.anythingai.online/static/profile3/swim-6.svg"},
 		{"title": "羽毛球馆", "name": "🏸羽毛球馆", "key": "bms", "checked": false, "icon": "🏸", "img": "https://ai.anythingai.online/static/profile3/badminton.png", "sport_img": "https://ai.anythingai.online/static/profile3/bms-6.svg"},
+		{"title": "攀岩馆", "name": "🧗攀岩馆", "key": "rcg", "checked": false, "icon": "🧗", "img": "https://ai.anythingai.online/static/profile3/rcg.png", "sport_img": "https://ai.anythingai.online/static/profile3/rcg-5.svg"},
 		{"title": "足球场", "name": "⚽足球场", "key": "fbs", "checked": false, "icon": "⚽", "img": "https://ai.anythingai.online/static/profile3/football.png", "sport_img": "https://ai.anythingai.online/static/profile3/fbs-6.svg"}
 	]`
 	if err := json.Unmarshal([]byte(sports), &data); err != nil {
@@ -853,6 +856,62 @@ func (r *RM) GetAllOnlineData2(key string) ([]*form.OnlineData, error) {
 			}
 			onlineStatus = append(onlineStatus, od)
 		}
+	}
+
+	return onlineStatus, nil
+}
+
+// GetAllOnlineData3 获取所有在线人数的key
+func (r *RM) GetAllOnlineData3(ids []string) ([]*form.OnlineData, error) {
+	var (
+		cursor       uint64
+		onlineStatus []*form.OnlineData
+		matchPattern = "group_id_online_*"
+	)
+
+	// 将 id slice 转换成 map，方便快速查找
+	idSet := make(map[string]struct{}, len(ids))
+	for _, v := range ids {
+		idSet[v] = struct{}{}
+	}
+
+	for {
+		keys, nextCursor, err := rds.Scan(cursor, matchPattern, 20).Result() // 每次扫描 20 个
+		if err != nil {
+			return nil, err
+		}
+
+		for _, key := range keys {
+			// 提取 key 中的 id（假设 key 格式是 group_id_online_<id>）
+			parts := strings.Split(key, "_")
+			if len(parts) < 4 {
+				continue
+			}
+			keyID := parts[3]
+
+			// 判断 id 是否在目标列表中
+			if _, ok := idSet[keyID]; !ok {
+				continue
+			}
+
+			// 获取并反序列化数据
+			val, err := rds.Get(key).Result()
+			if err != nil {
+				// key 不存在或其他错误，跳过
+				continue
+			}
+
+			var od form.OnlineData
+			if err := json.Unmarshal([]byte(val), &od); err != nil {
+				return nil, err
+			}
+			onlineStatus = append(onlineStatus, &od)
+		}
+
+		if nextCursor == 0 {
+			break
+		}
+		cursor = nextCursor
 	}
 
 	return onlineStatus, nil

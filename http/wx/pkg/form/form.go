@@ -207,8 +207,13 @@ type FilterField struct {
 }
 
 type OnlineData struct {
-	Id       string `json:"id"`        // 场地id, 对应着每一个聊天室
-	Title    string `json:"title"`     // 场地简称，比如：科苑篮球馆
+	Id       string `json:"id"`    // 场地id, 对应着每一个聊天室
+	Title    string `json:"title"` // 场地简称，比如：科苑篮球馆
+	City     string `json:"city"`
 	SportKey string `json:"sport_key"` // 比如：篮球bks,完整的：shenzhenshi_bks
 	Online   int    `json:"online"`    // 在线人数
+}
+
+type UserGetOnlineData struct {
+	Id []string `json:"id" validate:"required"`
 }
