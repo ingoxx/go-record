@@ -87,6 +87,7 @@ func (r *RM) getAllData(key, cnKey, keyWord string) ([]*form.SaveInRedis, error)
 			log.Printf("[ERROR] %s 接口请求失败, 失败信息：%v\n", v.Project, v.Err)
 			continue
 		}
+
 		result = append(result, v.Data...)
 	}
 
@@ -94,7 +95,9 @@ func (r *RM) getAllData(key, cnKey, keyWord string) ([]*form.SaveInRedis, error)
 		return make([]*form.SaveInRedis, 0), nil
 	}
 
-	return result, nil
+	nr := r.uniqueByField(result)
+
+	return nr, nil
 }
 
 // GetAllData 当前市某个运动的所有场地地址列表, 只保留半年月, 半年月后重新更新, 主要是为了获取最新的场地数据
@@ -761,9 +764,9 @@ func (r *RM) GetSportList() ([]form.SportList, error) {
 	//]`
 	sports := `[
 		{"title": "篮球场", "name": "🏀篮球场", "key": "bks", "checked": false, "icon": "🏀", "img": "https://ai.anythingai.online/static/profile3/main-bk.jpg", "sport_img": "https://ai.anythingai.online/static/profile3/bks-6.svg"},
+		{"title": "攀岩馆", "name": "🧗攀岩馆", "key": "rcg", "checked": false, "icon": "🧗", "img": "https://ai.anythingai.online/static/profile3/rcg.png", "sport_img": "https://ai.anythingai.online/static/profile3/rcg-5.svg"},
 		{"title": "游泳馆", "name": "🏊游泳馆", "key": "sws", "checked": false, "icon": "🏊", "img": "https://ai.anythingai.online/static/profile3/swim.png", "sport_img": "https://ai.anythingai.online/static/profile3/swim-6.svg"},
 		{"title": "羽毛球馆", "name": "🏸羽毛球馆", "key": "bms", "checked": false, "icon": "🏸", "img": "https://ai.anythingai.online/static/profile3/badminton.png", "sport_img": "https://ai.anythingai.online/static/profile3/bms-6.svg"},
-		{"title": "攀岩馆", "name": "🧗攀岩馆", "key": "rcg", "checked": false, "icon": "🧗", "img": "https://ai.anythingai.online/static/profile3/rcg.png", "sport_img": "https://ai.anythingai.online/static/profile3/rcg-5.svg"},
 		{"title": "足球场", "name": "⚽足球场", "key": "fbs", "checked": false, "icon": "⚽", "img": "https://ai.anythingai.online/static/profile3/football.png", "sport_img": "https://ai.anythingai.online/static/profile3/fbs-6.svg"}
 	]`
 	if err := json.Unmarshal([]byte(sports), &data); err != nil {
@@ -1438,4 +1441,27 @@ func (r *RM) getVenueName(key, gid string) (string, error) {
 	}
 
 	return name, nil
+}
+
+func (r *RM) uniqueByField(data []*form.SaveInRedis) []*form.SaveInRedis {
+	m := make(map[string]*form.SaveInRedis)
+
+	for _, p := range data {
+		if existing, ok := m[p.Title]; ok {
+			// 判断优先级：优先保留 Gender 非空的
+			if existing.Img == "" && p.Img != "" {
+				m[p.Title] = p // 替换为 Gender 不为空的
+			}
+			// 如果都为空或都有值，保留第一次出现的即可，不做替换
+		} else {
+			m[p.Title] = p
+		}
+	}
+
+	// 转换回切片
+	result := make([]*form.SaveInRedis, 0, len(m))
+	for _, v := range m {
+		result = append(result, v)
+	}
+	return result
 }

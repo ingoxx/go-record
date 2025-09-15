@@ -90,7 +90,7 @@ type AddrListForm struct {
 }
 
 func main() {
-	getOpenIdList()
+	getAllData()
 }
 
 func updateSquare() {
@@ -181,10 +181,10 @@ func getAllData() {
 		//"group_id_shenzhenshi_fbs",
 		//"group_id_jinhuashi_bks",
 		//"group_id_chuzhoushi_bks",
-		//"group_id_shenzhenshi_sws",
+		"group_id_shenzhenshi_sws",
 		//"group_id_taizhoushi_bks",
 		//"group_id_zhongqingshi_fbs",
-		"group_id_shenzhenshi_bks",
+		//"group_id_shenzhenshi_bks",
 		//"group_id_heyuanshi_bks",
 		//"group_id_changzhoushi_bks",
 		//"group_id_shanghaishi_bms",
@@ -206,27 +206,28 @@ func getAllData() {
 			log.Fatalln(err)
 		}
 
+		fmt.Println("总：", len(data))
+
 		for _, vd := range data {
-			if vd.Id == "c78a5b82-d375-4b0d-998d-4dd8ea8d93ef" {
-				vd.Img = ""
-			}
+			//if vd.Id == "c78a5b82-d375-4b0d-998d-4dd8ea8d93ef" {
+			//	vd.Img = ""
+			//}
 			fmt.Println("--------------------------------")
-			fmt.Println(vd.Title, vd.Id)
-			fmt.Println(vd.Img)
 			fmt.Println(vd.Id)
-
+			fmt.Println(vd.Title)
+			fmt.Println(vd.Img)
 		}
 
-		b, err := json.Marshal(&data)
-		if err != nil {
-			log.Fatalln(err)
-		}
-
-		if _, err := rdPool.Set(vk, b, 0).Result(); err != nil {
-			log.Fatalln(err)
-		}
-
-		log.Printf("%s , update ok\n", vk)
+		//b, err := json.Marshal(&data)
+		//if err != nil {
+		//	log.Fatalln(err)
+		//}
+		//
+		//if _, err := rdPool.Set(vk, b, 0).Result(); err != nil {
+		//	log.Fatalln(err)
+		//}
+		//
+		//log.Printf("%s , update ok\n", vk)
 	}
 
 }

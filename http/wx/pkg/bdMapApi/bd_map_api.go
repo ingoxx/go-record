@@ -30,7 +30,7 @@ func NewBdMapApi(url, city, keyWord string) BdMapApi {
 func (t BdMapApi) KeyWordSearch() ([]*form.SaveInRedis, error) {
 	var fd form.BdAPIResponse
 	var sd = make([]*form.SaveInRedis, 0, 100)
-	uri := "/api_place_pro/v1/region"
+	uri := "/api_place_pro/v1/region?region_limit=true"
 	var offset int
 
 	for offset <= 6 {
