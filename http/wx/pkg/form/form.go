@@ -217,3 +217,21 @@ type OnlineData struct {
 type UserGetOnlineData struct {
 	Id []string `json:"id" validate:"required"`
 }
+
+type WxBtnText struct {
+	Id   string `json:"id"`
+	Name string `json:"name"`
+}
+
+type PublishData struct {
+	NickName    string `json:"nick_name"`
+	Img         string `json:"img"`
+	Content     string `json:"content"`
+	Addr        string `json:"addr"`
+	Date        string `json:"date"`
+	PublishDate string `json:"publish_date"`
+	Price       string `json:"price"`
+	GenderReq   string `json:"gender_req"`
+	SportKey    string `json:"sport_key"`
+	Players     int    `json:"players"`
+}

@@ -1413,36 +1413,6 @@ func (r *RM) FilterVenueData() []*form.FilterField {
 	return data
 }
 
-func (r *RM) getVenueName(key, gid string) (string, error) {
-	var name string
-	result, err := r.Get(key)
-	if err != nil && !errors.Is(err, redis.Nil) {
-		return name, err
-	}
-
-	if result == "" {
-		return name, errors.New("没有数据")
-	}
-
-	var allData []*form.SaveInRedis
-	if err := json.Unmarshal([]byte(result), &allData); err != nil {
-		return name, err
-	}
-
-	for _, v := range allData {
-		if v.Id == gid {
-			name = v.Title
-			break
-		}
-	}
-
-	if name == "" {
-		return name, errors.New("未知场地名")
-	}
-
-	return name, nil
-}
-
 func (r *RM) uniqueByField(data []*form.SaveInRedis) []*form.SaveInRedis {
 	m := make(map[string]*form.SaveInRedis)
 
@@ -1464,4 +1434,20 @@ func (r *RM) uniqueByField(data []*form.SaveInRedis) []*form.SaveInRedis {
 		result = append(result, v)
 	}
 	return result
+}
+
+func (r *RM) GetWxBtnText() ([]*form.WxBtnText, error) {
+	data := `[
+		{"id": 1, "name": "获取更多场地图片"},
+		{"id": 2, "name": "发布付费陪练"},
+		{"id": 3, "name": "场地"},
+		{"id": 4, "name": "陪练"}
+	]`
+	var fd []*form.WxBtnText
+
+	if err := json.Unmarshal([]byte(data), &fd); err != nil {
+		return fd, err
+	}
+
+	return fd, nil
 }

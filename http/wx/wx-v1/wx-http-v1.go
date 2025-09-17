@@ -64,6 +64,7 @@ type Resp struct {
 	FilterData interface{} `json:"filter_data"`
 	Venues     interface{} `json:"venues"`
 	Data       interface{} `json:"data"`
+	Btn        interface{} `json:"btn"`
 	Msg        string      `json:"msg"`
 	Code       int         `json:"code"`
 }
@@ -1296,6 +1297,16 @@ func handleShowSportsSquare(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	btn, err := redis.NewRM().GetWxBtnText()
+	if err != nil {
+		rp.h(Resp{
+			Msg:  err.Error(),
+			Code: 1006,
+			Data: "0",
+		})
+		return
+	}
+
 	go func() {
 		if !openid.NewWhiteList(uid).IsWhite() {
 			if err := ddw.NewDDWarn(fmt.Sprintf("用户id：%s，城市：%s，选择了：%s运动", uid, city, keyWord)).Send(); err != nil {
@@ -1313,6 +1324,7 @@ func handleShowSportsSquare(w http.ResponseWriter, r *http.Request) {
 		OtherData:  ol,
 		FilterData: redis.NewRM().FilterVenueData(),
 		Venues:     venues,
+		Btn:        btn,
 	})
 }
 
