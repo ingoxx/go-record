@@ -127,12 +127,154 @@ func main() {
 	mux.HandleFunc("/update-sports-venue", handleUpdateSportsVenue)
 	mux.HandleFunc("/get-user-list", handleGetUserList)
 	mux.HandleFunc("/get-venue-img", handleGetVenueImg)
+	mux.HandleFunc("/add-publish-data", handleAddPublishData)
+	mux.HandleFunc("/update-publish-data", handleUpdatePublish)
+	mux.HandleFunc("/update-single-publish-data", handleUpdateSinglePublishData)
+	mux.HandleFunc("/get-user-publish-data", handleGetUserPublishData)
+	mux.HandleFunc("/get-all-user-publish-data", handleGetAllPublishData)
 
 	// 启动广播处理器
 	go handleBroadcast()
 
 	log.Println("Server started on :11806")
 	log.Fatal(http.ListenAndServe(":11806", mux))
+}
+
+// handleAddPublishData 发布任务
+func handleAddPublishData(w http.ResponseWriter, r *http.Request) {
+	var rp = Resp{w: w}
+	if r.Method != http.MethodPost {
+		rp.h(Resp{
+			Msg:  "invalid request",
+			Code: 1001,
+			Data: "0",
+		})
+		return
+	}
+
+	uid := r.FormValue("uid")
+	if uid == "" {
+		rp.h(Resp{
+			Msg:  "invalid parameter",
+			Code: 1002,
+			Data: "0",
+		})
+		return
+	}
+
+	if err := redis.NewRM().GetWxOpenid(uid); err != nil {
+		rp.h(Resp{
+			Msg:  err.Error(),
+			Code: 1003,
+			Data: "0",
+		})
+		return
+	}
+
+	b, err := io.ReadAll(r.Body)
+	if err != nil {
+		rp.h(Resp{
+			Msg:  err.Error(),
+			Code: 1004,
+			Data: "0",
+		})
+		return
+	}
+
+	defer r.Body.Close()
+
+	var data *form.PublishData
+	if err := json.Unmarshal(b, &data); err != nil {
+		rp.h(Resp{
+			Msg:  err.Error(),
+			Code: 1005,
+			Data: "0",
+		})
+		return
+	}
+
+	if err := validate.Struct(data); err != nil {
+		rp.h(Resp{
+			Msg:  err.Error(),
+			Code: 1006,
+			Data: "0",
+		})
+		return
+	}
+
+	cityPy := pinyin.LazyPinyin(data.City, pinyin.NewArgs())
+	data.City = strings.Join(cityPy, "")
+
+	fd, err := redis.NewRM().AddPublish(data)
+	if err != nil {
+		rp.h(Resp{
+			Msg:  err.Error(),
+			Code: 1007,
+			Data: "0",
+		})
+		return
+	}
+
+	rp.h(Resp{
+		Msg:  "ok",
+		Code: 1000,
+		Data: fd,
+	})
+}
+
+func handleUpdatePublish(w http.ResponseWriter, r *http.Request) {}
+
+func handleUpdateSinglePublishData(w http.ResponseWriter, r *http.Request) {}
+
+func handleGetUserPublishData(w http.ResponseWriter, r *http.Request) {}
+
+func handleGetAllPublishData(w http.ResponseWriter, r *http.Request) {
+	var rp = Resp{w: w}
+	if r.Method != http.MethodGet {
+		rp.h(Resp{
+			Msg:  "invalid request",
+			Code: 1001,
+			Data: "0",
+		})
+		return
+	}
+
+	uid := r.FormValue("uid")
+	sportKey := r.FormValue("sport_key")
+	if uid != config.Admin || sportKey == "" {
+		rp.h(Resp{
+			Msg:  "invalid parameter",
+			Code: 1002,
+			Data: "0",
+		})
+		return
+	}
+
+	if err := redis.NewRM().GetWxOpenid(uid); err != nil {
+		rp.h(Resp{
+			Msg:  err.Error(),
+			Code: 1003,
+			Data: "0",
+		})
+		return
+	}
+
+	data, err := redis.NewRM().GetAllPublishData(sportKey)
+	if err != nil {
+		rp.h(Resp{
+			Msg:  err.Error(),
+			Code: 1004,
+			Data: "0",
+		})
+		return
+	}
+
+	rp.h(Resp{
+		Msg:  "ok",
+		Code: 1000,
+		Data: data,
+	})
+
 }
 
 // handleGetVenueImg 获取单个场地的图片,可能会失败

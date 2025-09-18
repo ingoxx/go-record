@@ -219,19 +219,36 @@ type UserGetOnlineData struct {
 }
 
 type WxBtnText struct {
-	Id   string `json:"id"`
+	Id   int    `json:"id"`
 	Name string `json:"name"`
 }
 
 type PublishData struct {
-	NickName    string `json:"nick_name"`
-	Img         string `json:"img"`
-	Content     string `json:"content"`
-	Addr        string `json:"addr"`
-	Date        string `json:"date"`
-	PublishDate string `json:"publish_date"`
-	Price       string `json:"price"`
-	GenderReq   string `json:"gender_req"`
-	SportKey    string `json:"sport_key"`
-	Players     int    `json:"players"`
+	Id          string  `json:"id" validate:"required"` // 生成唯一的任务id
+	City        string  `json:"city" validate:"required"`
+	UserId      string  `json:"user_id" validate:"required"` // 发布用户就用wx的openid
+	NickName    string  `json:"nick_name" validate:"required"`
+	Img         string  `json:"img" validate:"required"`
+	Content     string  `json:"content" validate:"required"`
+	Addr        string  `json:"addr" validate:"required"`
+	Title       string  `json:"title" validate:"required"` // 篮球场简称
+	Date        string  `json:"date" validate:"required"`  // 用户指定的陪练时间
+	PublishDate string  `json:"publish_date"`              // 用户发布的时间，后端写
+	Price       string  `json:"price" validate:"required"`
+	GenderReq   string  `json:"gender_req" validate:"required"`
+	SportKey    string  `json:"sport_key" validate:"required"`
+	Time        string  `json:"time"` // 创建时间，后端写
+	Players     string  `json:"players" validate:"required"`
+	Lng         float64 `json:"lng" validate:"required"`
+	Lat         float64 `json:"lat" validate:"required"`
+	Finish      bool    `json:"finish"`
+	IsDel       bool    `json:"is_del"`
+}
+
+type MissionStatus struct {
+	Id       string `json:"id" validate:"required"`
+	UserId   string `json:"user_id" validate:"required"`
+	City     string `json:"city" validate:"required"`
+	SportKey string `json:"sport_key" validate:"required"`
+	Status   int    `json:"status" validate:"required"` // 1.表示完成，2.表示删除
 }

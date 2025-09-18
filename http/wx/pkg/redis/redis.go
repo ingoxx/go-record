@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/go-redis/redis"
+	"github.com/google/uuid"
 	"github.com/ingoxx/go-record/http/wx/pkg/config"
 	"github.com/ingoxx/go-record/http/wx/pkg/distance"
 	cuerr "github.com/ingoxx/go-record/http/wx/pkg/error"
@@ -1450,4 +1451,189 @@ func (r *RM) GetWxBtnText() ([]*form.WxBtnText, error) {
 	}
 
 	return fd, nil
+}
+
+// AddPublish 发布任务
+func (r *RM) AddPublish(data *form.PublishData) ([]*form.PublishData, error) {
+	var all []*form.PublishData
+
+	data.Id = uuid.NewString()
+	week, err := r.getWeek(data.Date)
+	if err != nil {
+		return all, err
+	}
+
+	data.Date = fmt.Sprintf("%s %s", data.Date, week)
+	data.PublishDate = time.Now().Format("01-02")
+	data.Time = time.Now().Format("2006-01-02 15:04:05")
+
+	// 运动+城市 Hash
+	key1 := fmt.Sprintf("publish_%s_%s", data.City, data.SportKey)
+	// 用户 Hash
+	key2 := fmt.Sprintf("user_publish_%s", data.UserId)
+
+	b, err := json.Marshal(data)
+	if err != nil {
+		return all, err
+	}
+
+	if err := rds.HSet(key1, data.Id, b).Err(); err != nil {
+		return all, err
+	}
+	if err := rds.HSet(key2, data.Id, b).Err(); err != nil {
+		return all, err
+	}
+
+	sport, err := r.GetTasksByCityAndSport(data.SportKey, data.City)
+	if err != nil {
+		return sport, err
+	}
+
+	return sport, nil
+}
+
+// GetUserPublishData 查询用户自己发布的所有任务
+func (r *RM) GetUserPublishData(userId string) ([]*form.PublishData, error) {
+	key := fmt.Sprintf("user_publish_%s", userId)
+	values, err := rds.HGetAll(key).Result()
+	if err != nil {
+		return nil, err
+	}
+
+	var result []*form.PublishData
+	for _, v := range values {
+		var p *form.PublishData
+		if err := json.Unmarshal([]byte(v), &p); err == nil {
+			result = append(result, p)
+		}
+	}
+	return result, nil
+}
+
+// UpdatePublish 更新任务（同时更新两个 Hash）
+func (r *RM) UpdatePublish(data *form.PublishData) error {
+	b, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+
+	// 更新运动+城市
+	key1 := fmt.Sprintf("publish_%s_%s", data.City, data.SportKey)
+	// 更新用户 Hash
+	key2 := fmt.Sprintf("user_publish_%s", data.UserId)
+
+	if err := rds.HSet(key1, data.Id, b).Err(); err != nil {
+		return err
+	}
+	if err := rds.HSet(key2, data.Id, b).Err(); err != nil {
+		return err
+	}
+	return nil
+}
+
+// UpdateSinglePublishData 更新某个任务，删除或者标记已完成
+func (r *RM) UpdateSinglePublishData(ms form.MissionStatus) error {
+	hashKey := fmt.Sprintf("publish_%s_%s", ms.City, ms.SportKey)
+
+	// 1. 获取 JSON
+	val, err := rds.HGet(hashKey, ms.Id).Result()
+	if errors.Is(err, redis.Nil) {
+		return fmt.Errorf("task %s not found", ms.Id)
+	} else if err != nil {
+		return err
+	}
+
+	// 2. 反序列化
+	var data *form.PublishData
+	if err := json.Unmarshal([]byte(val), &data); err != nil {
+		return err
+	}
+
+	if ms.Status == 1 {
+		data.Finish = true
+	} else if ms.Status == 2 {
+		data.IsDel = true
+	}
+
+	// 4. 序列化并写回
+	newVal, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+
+	return rds.HSet(hashKey, ms.Id, newVal).Err()
+}
+
+// GetAllPublishData 只有管理员才能获取不限制城市指定运动类型的所有数据
+func (r *RM) GetAllPublishData(sportKey string) ([]*form.PublishData, error) {
+	pattern := fmt.Sprintf("publish_*_%s", sportKey)
+
+	var tasks []*form.PublishData
+
+	// 用 SCAN 避免 KEYS 阻塞
+	iter := rds.Scan(0, pattern, 0).Iterator()
+	for iter.Next() {
+		hashKey := iter.Val()
+
+		// 获取该城市下所有任务
+		values, err := rds.HGetAll(hashKey).Result()
+		if err != nil {
+			return nil, err
+		}
+
+		for _, v := range values {
+			var pd *form.PublishData
+			if err := json.Unmarshal([]byte(v), &pd); err == nil {
+				tasks = append(tasks, pd)
+			}
+		}
+	}
+	if err := iter.Err(); err != nil {
+		return nil, err
+	}
+
+	return tasks, nil
+}
+
+// GetTasksByCityAndSport 获取指定城市+运动类型的所有任务
+func (r *RM) GetTasksByCityAndSport(sportKey, city string) ([]*form.PublishData, error) {
+	hashKey := fmt.Sprintf("publish_%s_%s", city, sportKey) // 例如 publish_shenzhenshi_bks
+
+	allValues, err := rds.HGetAll(hashKey).Result()
+	if err != nil {
+		return nil, err
+	}
+
+	tasks := make([]*form.PublishData, 0, len(allValues))
+	for _, v := range allValues {
+		var pd *form.PublishData
+		if err := json.Unmarshal([]byte(v), &pd); err == nil {
+			tasks = append(tasks, pd)
+		}
+	}
+
+	return tasks, nil
+}
+
+func (r *RM) getWeek(dateStr string) (string, error) {
+	// 解析日期字符串为 time.Time 对象
+	layout := "2006-01-02 15:04:05" // 时间格式必须使用这个参考值
+	t, err := time.Parse(layout, dateStr)
+	if err != nil {
+		return dateStr, err
+	}
+
+	weekday := t.Weekday()
+
+	// 如果需要中文格式，可以用一个映射
+	weekMap := map[time.Weekday]string{
+		time.Sunday:    "星期日",
+		time.Monday:    "星期一",
+		time.Tuesday:   "星期二",
+		time.Wednesday: "星期三",
+		time.Thursday:  "星期四",
+		time.Friday:    "星期五",
+		time.Saturday:  "星期六",
+	}
+	return weekMap[weekday], nil
 }
