@@ -243,6 +243,7 @@ type PublishData struct {
 	Lat         float64 `json:"lat" validate:"required"`
 	Finish      bool    `json:"finish"`
 	IsDel       bool    `json:"is_del"`
+	IsPublisher bool    `json:"is_publisher"`
 }
 
 type MissionStatus struct {

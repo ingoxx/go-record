@@ -34,6 +34,13 @@ var (
 	filter = sensitive.New()
 )
 
+type PublishMessage struct {
+	From    string `json:"from"`
+	To      string `json:"to"`
+	Content string `json:"content"`
+	Time    string `json:"time"`
+}
+
 // Group 一个群聊包含多个客户端连接 + 消息历史
 type Group struct {
 	Clients  map[*websocket.Conn]bool
@@ -100,6 +107,10 @@ var (
 	upgrader = websocket.Upgrader{
 		CheckOrigin: func(r *http.Request) bool { return true },
 	}
+
+	clients     = make(map[string]*websocket.Conn)  // 在线用户
+	chatHistory = make(map[string][]PublishMessage) // key: "a|b"
+	mu          sync.RWMutex
 )
 
 func main() {
@@ -132,7 +143,7 @@ func main() {
 	mux.HandleFunc("/update-single-publish-data", handleUpdateSinglePublishData)
 	mux.HandleFunc("/get-user-publish-data", handleGetUserPublishData)
 	mux.HandleFunc("/get-all-user-publish-data", handleGetAllPublishData)
-
+	mux.HandleFunc("/ws-pub", handlePublishDataWs)
 	// 启动广播处理器
 	go handleBroadcast()
 
@@ -1841,6 +1852,68 @@ func handleOnline(w http.ResponseWriter, r *http.Request) {
 
 }
 
+// 生成唯一key
+func chatKey(a, b string) string {
+	if a < b {
+		return a + "|" + b
+	}
+	return b + "|" + a
+}
+
+func handlePublishDataWs(w http.ResponseWriter, r *http.Request) {
+	userID := r.URL.Query().Get("user")
+	if userID == "" {
+		http.Error(w, "missing user", http.StatusBadRequest)
+		return
+	}
+	conn, _ := upgrader.Upgrade(w, r, nil)
+
+	mu.Lock()
+	clients[userID] = conn
+
+	// 🔥 登录时推送该用户参与过的所有历史消息
+	for key, history := range chatHistory {
+		if strings.Contains(key, userID) {
+			for _, m := range history {
+				if err := conn.WriteJSON(m); err != nil {
+					log.Println("fail to send publish data 1, error: ", err.Error())
+				}
+			}
+		}
+	}
+	mu.Unlock()
+
+	// 监听消息
+	for {
+		_, data, err := conn.ReadMessage()
+		if err != nil {
+			break
+		}
+		var msg PublishMessage
+		if err := json.Unmarshal(data, &msg); err != nil {
+			continue
+		}
+		msg.Time = time.Now().Format("2006-01-02 15:04:05")
+
+		key := chatKey(msg.From, msg.To)
+
+		mu.Lock()
+		chatHistory[key] = append(chatHistory[key], msg)
+
+		// 转发给接收方
+		if toConn, ok := clients[msg.To]; ok {
+			if err := toConn.WriteJSON(msg); err != nil {
+				log.Println("fail to send publish data 2, error: ", err.Error())
+			}
+		}
+		mu.Unlock()
+	}
+
+	mu.Lock()
+	delete(clients, userID)
+	mu.Unlock()
+}
+
 // handleConnections 聊天室接收到的用户发的信息
 func handleConnections(w http.ResponseWriter, r *http.Request) {
 	uid := r.FormValue("uid")
@@ -1904,10 +1977,6 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 	group.Clients[ws] = true
 	userCount := len(group.Clients)
 	if groupID != "" {
-		//gn := fmt.Sprintf("%s_%s", config.OnlineKey, groupID)
-		//if err := redis.NewRM().Set(gn, userCount, time.Second*time.Duration(7200)); err != nil {
-		//	log.Printf("[ERROR] 写入redis失败, 错误信息：%v", err)
-		//}
 		sd := &form.OnlineData{
 			Id:       groupID,
 			Title:    initMsg.VenueName,
@@ -1956,10 +2025,6 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 			userCount = len(group.Clients)
 			log.Printf("用户：%s, 组：%s, 当前人数: %d,  断开连接", initMsg.UserID, initMsg.GroupID, userCount)
 			if msg.GroupID != "" {
-				//gn := fmt.Sprintf("%s_%s", config.OnlineKey, msg.GroupID)
-				//if err := redis.NewRM().Set(gn, userCount, time.Second*time.Duration(7200)); err != nil {
-				//	log.Printf("[ERROR] 写入redis失败, 错误信息：%v", err)
-				//}
 				sd := &form.OnlineData{
 					Id:       msg.GroupID,
 					Title:    msg.VenueName,
@@ -2018,10 +2083,6 @@ func handleBroadcast() {
 		groupsMu.Lock()
 		group, ok := groups[groupID]
 		if msg.GroupID != "" {
-			//gn := fmt.Sprintf("%s_%s", config.OnlineKey, msg.GroupID)
-			//if err := redis.NewRM().Set(gn, msg.UserCount, time.Second*time.Duration(7200)); err != nil {
-			//	log.Println("[ERROR] fail to save user count.")
-			//}
 			sd := &form.OnlineData{
 				Id:       msg.GroupID,
 				Title:    msg.VenueName,
@@ -2031,7 +2092,6 @@ func handleBroadcast() {
 			if err := redis.NewRM().UpdateGroupOnline(sd); err != nil {
 				log.Printf("[ERROR] 写入redis失败, 错误信息：%v", err)
 			}
-
 		}
 		groupsMu.Unlock()
 		if !ok {
