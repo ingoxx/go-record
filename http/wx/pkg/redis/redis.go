@@ -1399,19 +1399,23 @@ func (r *RM) GetVenueImg(key, aid, city string) error {
 	return nil
 }
 
-func (r *RM) FilterVenueData() []*form.FilterField {
-	var data = make([]*form.FilterField, 3)
-	names := []string{"距离最近", "组队人数", "评价数量"}
-	for k, v := range names {
-		id := k + 1
-		f := &form.FilterField{
-			Id:   id,
-			Name: v,
-		}
-		data[k] = f
+func (r *RM) FilterVenueData() ([]*form.FilterField, error) {
+	var data []*form.FilterField
+	var jd = `[
+		{"id": 1, "name": "距离最近", "type": 1000 },
+		{"id": 2, "name": "组队人数", "type": 1000},
+		{"id": 3, "name": "评价数量", "type": 1000},
+		{"id": 4, "name": "价格", "type": 2000},
+		{"id": 5, "name": "新发布", "type": 2000},
+		{"id": 6, "name": "已删除", "type": 2000},
+		{"id": 7, "name": "生效中", "type": 2000}
+	]`
+
+	if err := json.Unmarshal([]byte(jd), &data); err != nil {
+		return data, err
 	}
 
-	return data
+	return data, nil
 }
 
 func (r *RM) uniqueByField(data []*form.SaveInRedis) []*form.SaveInRedis {
@@ -1437,6 +1441,7 @@ func (r *RM) uniqueByField(data []*form.SaveInRedis) []*form.SaveInRedis {
 	return result
 }
 
+// GetWxBtnText 一些隐藏按钮
 func (r *RM) GetWxBtnText() ([]*form.WxBtnText, error) {
 	data := `[
 		{"id": 1, "name": "获取更多场地图片"},
@@ -1468,7 +1473,7 @@ func (r *RM) AddPublish(data *form.PublishData) ([]*form.PublishData, error) {
 	data.Time = time.Now().Format("2006-01-02 15:04:05")
 
 	// 运动+城市 Hash
-	key1 := fmt.Sprintf("publish_%s_%s", data.City, data.SportKey)
+	key1 := fmt.Sprintf("publish_%s_%s", data.CityPy, data.SportKey)
 	// 用户 Hash
 	key2 := fmt.Sprintf("user_publish_%s", data.UserId)
 
@@ -1484,12 +1489,50 @@ func (r *RM) AddPublish(data *form.PublishData) ([]*form.PublishData, error) {
 		return all, err
 	}
 
-	sport, err := r.GetTasksByCityAndSport(data.SportKey, data.City)
+	sport, err := r.GetTasksByCityAndSport(data.SportKey, data.CityPy)
 	if err != nil {
 		return sport, err
 	}
 
 	return sport, nil
+}
+
+func (r *RM) delPublishHistory(userId, tid string) ([]*form.PublishData, error) {
+	key := fmt.Sprintf("user_publish_%s", userId)
+	values, err := rds.HGetAll(key).Result()
+	if err != nil {
+		return nil, err
+	}
+
+	var result []*form.PublishData
+	var uc = make([]*form.UserRoomID, 0)
+	for _, v := range values {
+		var p *form.PublishData
+		if err := json.Unmarshal([]byte(v), &p); err != nil {
+			return result, err
+		}
+
+		if p.Id == tid {
+			p.IsDel = true
+			p.UserCount = uc
+			p.OnlineNum = 0
+			b, err := json.Marshal(&p)
+			if err != nil {
+				return result, err
+			}
+			if err := rds.HSet(key, tid, b).Err(); err != nil {
+				return result, err
+			}
+		}
+
+		result = append(result, p)
+	}
+
+	if len(result) == 0 {
+		return make([]*form.PublishData, 0), nil
+	}
+
+	return result, nil
 }
 
 // GetUserPublishData 查询用户自己发布的所有任务
@@ -1504,9 +1547,16 @@ func (r *RM) GetUserPublishData(userId string) ([]*form.PublishData, error) {
 	for _, v := range values {
 		var p *form.PublishData
 		if err := json.Unmarshal([]byte(v), &p); err == nil {
-			result = append(result, p)
+			if !p.IsDel {
+				result = append(result, p)
+			}
 		}
 	}
+
+	if len(result) == 0 {
+		return make([]*form.PublishData, 0), nil
+	}
+
 	return result, nil
 }
 
@@ -1518,7 +1568,7 @@ func (r *RM) UpdatePublish(data *form.PublishData) error {
 	}
 
 	// 更新运动+城市
-	key1 := fmt.Sprintf("publish_%s_%s", data.City, data.SportKey)
+	key1 := fmt.Sprintf("publish_%s_%s", data.CityPy, data.SportKey)
 	// 更新用户 Hash
 	key2 := fmt.Sprintf("user_publish_%s", data.UserId)
 
@@ -1532,36 +1582,68 @@ func (r *RM) UpdatePublish(data *form.PublishData) error {
 }
 
 // UpdateSinglePublishData 更新某个任务，删除或者标记已完成
-func (r *RM) UpdateSinglePublishData(ms form.MissionStatus) error {
-	hashKey := fmt.Sprintf("publish_%s_%s", ms.City, ms.SportKey)
+func (r *RM) UpdateSinglePublishData(ms *form.MissionStatus, uid string) ([]*form.PublishData, error) {
+	var fd []*form.PublishData
+	hashKey := fmt.Sprintf("publish_%s_%s", ms.CityPy, ms.SportKey)
 
 	// 1. 获取 JSON
 	val, err := rds.HGet(hashKey, ms.Id).Result()
 	if errors.Is(err, redis.Nil) {
-		return fmt.Errorf("task %s not found", ms.Id)
+		return fd, fmt.Errorf("task %s not found", ms.Id)
 	} else if err != nil {
-		return err
+		return fd, err
 	}
 
+	var uc = make([]*form.UserRoomID, 0)
 	// 2. 反序列化
 	var data *form.PublishData
 	if err := json.Unmarshal([]byte(val), &data); err != nil {
-		return err
+		return fd, err
 	}
 
 	if ms.Status == 1 {
 		data.Finish = true
 	} else if ms.Status == 2 {
 		data.IsDel = true
+		data.UserCount = uc
+		data.OnlineNum = 0
+	} else if ms.Status == 3 {
+		data.IsDel = false
+	} else if ms.Status == 4 {
+		data.Finish = false
 	}
 
 	// 4. 序列化并写回
 	newVal, err := json.Marshal(data)
 	if err != nil {
-		return err
+		return fd, err
 	}
 
-	return rds.HSet(hashKey, ms.Id, newVal).Err()
+	if err := rds.HSet(hashKey, ms.Id, newVal).Err(); err != nil {
+		return fd, err
+	}
+
+	if _, err := r.delPublishHistory(ms.UserId, ms.Id); err != nil {
+		return fd, err
+	}
+
+	if _, err := r.delPublishTid(ms.Id); err != nil {
+		return fd, err
+	}
+
+	if uid == config.Admin { // 如果删除发布任务的是管理员就返回管理员能看到的数据
+		fd, err = r.GetAllPublishData(ms.SportKey)
+		if err != nil {
+			return fd, err
+		}
+	} else { // 如果是用户自己删除的发布任务就返回普通用户才能看到的数据
+		fd, err = r.GetTasksByCityAndSport(ms.SportKey, ms.CityPy)
+		if err != nil {
+			return fd, err
+		}
+	}
+
+	return fd, nil
 }
 
 // GetAllPublishData 只有管理员才能获取不限制城市指定运动类型的所有数据
@@ -1585,6 +1667,12 @@ func (r *RM) GetAllPublishData(sportKey string) ([]*form.PublishData, error) {
 			var pd *form.PublishData
 			if err := json.Unmarshal([]byte(v), &pd); err == nil {
 				tasks = append(tasks, pd)
+				tid, err := r.GetPublishTid(pd.Id)
+				if err != nil {
+					log.Printf("获取tid为：%s接入用户人数时报错: %s", pd.Id, err.Error())
+				}
+				pd.UserCount = append(pd.UserCount, tid...)
+				pd.OnlineNum = len(pd.UserCount)
 			}
 		}
 	}
@@ -1592,10 +1680,14 @@ func (r *RM) GetAllPublishData(sportKey string) ([]*form.PublishData, error) {
 		return nil, err
 	}
 
+	if len(tasks) == 0 {
+		return make([]*form.PublishData, 0), nil
+	}
+
 	return tasks, nil
 }
 
-// GetTasksByCityAndSport 获取指定城市+运动类型的所有任务
+// GetTasksByCityAndSport 获取指定城市+运动类型的所有任务-当前城市的用户选择了运动类型就可以查看所有悬赏任务
 func (r *RM) GetTasksByCityAndSport(sportKey, city string) ([]*form.PublishData, error) {
 	hashKey := fmt.Sprintf("publish_%s_%s", city, sportKey) // 例如 publish_shenzhenshi_bks
 
@@ -1608,8 +1700,20 @@ func (r *RM) GetTasksByCityAndSport(sportKey, city string) ([]*form.PublishData,
 	for _, v := range allValues {
 		var pd *form.PublishData
 		if err := json.Unmarshal([]byte(v), &pd); err == nil {
-			tasks = append(tasks, pd)
+			if !pd.IsDel {
+				tasks = append(tasks, pd)
+				tid, err := r.GetPublishTid(pd.Id)
+				if err != nil {
+					log.Printf("获取tid为：%s接入用户人数时报错: %s", pd.Id, err.Error())
+				}
+				pd.UserCount = append(pd.UserCount, tid...)
+				pd.OnlineNum = len(pd.UserCount)
+			}
 		}
+	}
+
+	if len(tasks) == 0 {
+		return make([]*form.PublishData, 0), nil
 	}
 
 	return tasks, nil
@@ -1636,4 +1740,99 @@ func (r *RM) getWeek(dateStr string) (string, error) {
 		time.Saturday:  "星期六",
 	}
 	return weekMap[weekday], nil
+}
+
+// GenerateId 用户点击沟通生成属于该发布id下的唯一room id
+func (r *RM) GenerateId(data *form.UserRoomID) (*form.UserRoomID, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	key := fmt.Sprintf("publish_tid_%s", data.Tid) // 例如 publish_tid_aaa-bbb-ccc
+	var fds []*form.UserRoomID
+	var nd *form.UserRoomID
+	var isFind bool
+	result, err := rds.HGet(key, data.Tid).Result()
+	if err != nil && !errors.Is(err, redis.Nil) {
+		return data, err
+	}
+
+	if result == "" {
+		data.Rid = uuid.NewString()
+		fds = append(fds, data)
+	} else {
+		if err := json.Unmarshal([]byte(result), &fds); err != nil {
+			return data, err
+		}
+		for _, v := range fds {
+			if v.UserId == data.UserId {
+				nd = v
+				isFind = true
+			}
+		}
+
+		if !isFind {
+			data.Rid = uuid.NewString()
+			fds = append(fds, data)
+		}
+	}
+
+	b, err := json.Marshal(&fds)
+	if err != nil {
+		return data, err
+	}
+
+	if err := rds.HSet(key, data.Tid, b).Err(); err != nil {
+		return data, err
+	}
+
+	if isFind {
+		return nd, nil
+	}
+
+	return data, nil
+}
+
+// GetPublishTid 返回某个发布id下的所有接入的room id
+func (r *RM) GetPublishTid(tid string) ([]*form.UserRoomID, error) {
+	hashKey := fmt.Sprintf("publish_tid_%s", tid) // 例如 publish_tid_aaa-bbb-ccc
+
+	allValues, err := rds.HGetAll(hashKey).Result()
+	if err != nil {
+		return nil, err
+	}
+
+	if len(allValues) == 0 {
+		return make([]*form.UserRoomID, 0), nil
+	}
+
+	tasks := make([]*form.UserRoomID, 0, len(allValues))
+	for _, v := range allValues {
+		var pd []*form.UserRoomID
+		if err := json.Unmarshal([]byte(v), &pd); err == nil {
+			tasks = append(tasks, pd...)
+		}
+	}
+
+	if len(tasks) == 0 {
+		return make([]*form.UserRoomID, 0), nil
+	}
+
+	return tasks, nil
+}
+
+func (r *RM) delPublishTid(tid string) ([]*form.UserRoomID, error) {
+	hashKey := fmt.Sprintf("publish_tid_%s", tid) // 例如 publish_tid_aaa-bbb-ccc
+	var fds = make([]*form.UserRoomID, 0)
+
+	result, err := rds.HDel(hashKey, tid).Result()
+	if err != nil {
+		return fds, err
+	}
+
+	if result == 0 {
+		return fds, nil
+	}
+
+	return fds, nil
+
 }

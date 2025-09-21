@@ -32,14 +32,15 @@ var (
 	validate = validator.New()
 	// 脏字库过滤器
 	filter = sensitive.New()
+	// 所有群: groupID => Group
+	groups   = make(map[string]*Group)
+	groupsMu sync.Mutex
+	// 全局广播
+	broadcast = make(chan Message)
+	upgrader  = websocket.Upgrader{
+		CheckOrigin: func(r *http.Request) bool { return true },
+	}
 )
-
-type PublishMessage struct {
-	From    string `json:"from"`
-	To      string `json:"to"`
-	Content string `json:"content"`
-	Time    string `json:"time"`
-}
 
 // Group 一个群聊包含多个客户端连接 + 消息历史
 type Group struct {
@@ -96,23 +97,6 @@ func (r Resp) h(rd Resp) {
 	}
 }
 
-var (
-	// 所有群: groupID => Group
-	groups   = make(map[string]*Group)
-	groupsMu sync.Mutex
-
-	// 全局广播
-	broadcast = make(chan Message)
-
-	upgrader = websocket.Upgrader{
-		CheckOrigin: func(r *http.Request) bool { return true },
-	}
-
-	clients     = make(map[string]*websocket.Conn)  // 在线用户
-	chatHistory = make(map[string][]PublishMessage) // key: "a|b"
-	mu          sync.RWMutex
-)
-
 func main() {
 	log.Println(config.Version)
 
@@ -143,12 +127,135 @@ func main() {
 	mux.HandleFunc("/update-single-publish-data", handleUpdateSinglePublishData)
 	mux.HandleFunc("/get-user-publish-data", handleGetUserPublishData)
 	mux.HandleFunc("/get-all-user-publish-data", handleGetAllPublishData)
-	mux.HandleFunc("/ws-pub", handlePublishDataWs)
+	mux.HandleFunc("/get-task-by-city-sport", handleGetTasksByCityAndSport)
+	mux.HandleFunc("/create-user-rid", handleCreateRId)
+	mux.HandleFunc("/get-all-rid", handleGetAllRid)
+
 	// 启动广播处理器
 	go handleBroadcast()
 
 	log.Println("Server started on :11806")
 	log.Fatal(http.ListenAndServe(":11806", mux))
+}
+
+// handlePublishTid 发布者通过发布id查看是否有用户接入
+func handleGetAllRid(w http.ResponseWriter, r *http.Request) {
+	var rp = Resp{w: w}
+	if r.Method != http.MethodGet {
+		rp.h(Resp{
+			Msg:  "invalid request",
+			Code: 1001,
+			Data: "0",
+		})
+		return
+	}
+
+	uid := r.FormValue("uid")
+	tid := r.FormValue("tid")
+	if uid == "" || tid == "" {
+		rp.h(Resp{
+			Msg:  "invalid parameter",
+			Code: 1002,
+			Data: "0",
+		})
+		return
+	}
+
+	if err := redis.NewRM().GetWxOpenid(uid); err != nil {
+		rp.h(Resp{
+			Msg:  err.Error(),
+			Code: 1003,
+			Data: "0",
+		})
+		return
+	}
+
+	data, err := redis.NewRM().GetPublishTid(tid)
+	if err != nil {
+		rp.h(Resp{
+			Msg:  err.Error(),
+			Code: 1004,
+			Data: "0",
+		})
+		return
+	}
+
+	rp.h(Resp{
+		Msg:  "ok",
+		Code: 1000,
+		Data: data,
+	})
+}
+
+// handleCreateRId 当用户点击沟通按钮时，使用发布id为key生成唯一对应的当前用户的room id
+func handleCreateRId(w http.ResponseWriter, r *http.Request) {
+	var rp = Resp{w: w}
+	if r.Method != http.MethodPost {
+		rp.h(Resp{
+			Msg:  "invalid request",
+			Code: 1001,
+			Data: "0",
+		})
+		return
+	}
+
+	uid := r.FormValue("uid")
+	if uid == "" {
+		rp.h(Resp{
+			Msg:  "invalid parameter",
+			Code: 1002,
+			Data: "0",
+		})
+		return
+	}
+
+	if err := redis.NewRM().GetWxOpenid(uid); err != nil {
+		rp.h(Resp{
+			Msg:  err.Error(),
+			Code: 1003,
+			Data: "0",
+		})
+		return
+	}
+
+	b, err := io.ReadAll(r.Body)
+	if err != nil {
+		rp.h(Resp{
+			Msg:  err.Error(),
+			Code: 1004,
+			Data: "0",
+		})
+		return
+	}
+
+	defer r.Body.Close()
+
+	var data *form.UserRoomID
+	if err := json.Unmarshal(b, &data); err != nil {
+		rp.h(Resp{
+			Msg:  err.Error(),
+			Code: 1005,
+			Data: "0",
+		})
+		return
+	}
+
+	fd, err := redis.NewRM().GenerateId(data)
+	if err != nil {
+		rp.h(Resp{
+			Msg:  "invalid parameter",
+			Code: 1006,
+			Data: "0",
+		})
+		return
+	}
+
+	rp.h(Resp{
+		Msg:  "ok",
+		Code: 1000,
+		Data: fd,
+	})
+
 }
 
 // handleAddPublishData 发布任务
@@ -214,7 +321,7 @@ func handleAddPublishData(w http.ResponseWriter, r *http.Request) {
 	}
 
 	cityPy := pinyin.LazyPinyin(data.City, pinyin.NewArgs())
-	data.City = strings.Join(cityPy, "")
+	data.CityPy = strings.Join(cityPy, "")
 
 	fd, err := redis.NewRM().AddPublish(data)
 	if err != nil {
@@ -235,9 +342,137 @@ func handleAddPublishData(w http.ResponseWriter, r *http.Request) {
 
 func handleUpdatePublish(w http.ResponseWriter, r *http.Request) {}
 
-func handleUpdateSinglePublishData(w http.ResponseWriter, r *http.Request) {}
+// handleUpdateSinglePublishData 更新某个发布任务，标记删除或者完成
+func handleUpdateSinglePublishData(w http.ResponseWriter, r *http.Request) {
+	var rp = Resp{w: w}
+	if r.Method != http.MethodPost {
+		rp.h(Resp{
+			Msg:  "invalid request",
+			Code: 1001,
+			Data: "0",
+		})
+		return
+	}
 
-func handleGetUserPublishData(w http.ResponseWriter, r *http.Request) {}
+	uid := r.FormValue("uid")
+	if uid == "" {
+		rp.h(Resp{
+			Msg:  "invalid parameter",
+			Code: 1002,
+			Data: "0",
+		})
+		return
+	}
+
+	if err := redis.NewRM().GetWxOpenid(uid); err != nil {
+		rp.h(Resp{
+			Msg:  err.Error(),
+			Code: 1003,
+			Data: "0",
+		})
+		return
+	}
+
+	b, err := io.ReadAll(r.Body)
+	if err != nil {
+		rp.h(Resp{
+			Msg:  err.Error(),
+			Code: 1004,
+			Data: "0",
+		})
+		return
+	}
+
+	defer r.Body.Close()
+
+	var data *form.MissionStatus
+	if err := json.Unmarshal(b, &data); err != nil {
+		rp.h(Resp{
+			Msg:  err.Error(),
+			Code: 1005,
+			Data: "0",
+		})
+		return
+	}
+
+	if err := validate.Struct(data); err != nil {
+		rp.h(Resp{
+			Msg:  err.Error(),
+			Code: 1006,
+			Data: "0",
+		})
+		return
+	}
+
+	cityPy := pinyin.LazyPinyin(data.City, pinyin.NewArgs())
+	data.CityPy = strings.Join(cityPy, "")
+
+	fd, err := redis.NewRM().UpdateSinglePublishData(data, uid)
+	if err != nil {
+		rp.h(Resp{
+			Msg:  err.Error(),
+			Code: 1007,
+			Data: "0",
+		})
+		return
+	}
+
+	rp.h(Resp{
+		Msg:  "ok",
+		Code: 1000,
+		Data: fd,
+	})
+
+	return
+
+}
+
+func handleGetUserPublishData(w http.ResponseWriter, r *http.Request) {
+	var rp = Resp{w: w}
+	if r.Method != http.MethodGet {
+		rp.h(Resp{
+			Msg:  "invalid request",
+			Code: 1001,
+			Data: "0",
+		})
+		return
+	}
+
+	uid := r.FormValue("uid")
+	if uid == "" {
+		rp.h(Resp{
+			Msg:  "invalid parameter",
+			Code: 1002,
+			Data: "0",
+		})
+		return
+	}
+
+	if err := redis.NewRM().GetWxOpenid(uid); err != nil {
+		rp.h(Resp{
+			Msg:  err.Error(),
+			Code: 1003,
+			Data: "0",
+		})
+		return
+	}
+
+	data, err := redis.NewRM().GetUserPublishData(uid)
+	if err != nil {
+		rp.h(Resp{
+			Msg:  err.Error(),
+			Code: 1004,
+			Data: "0",
+		})
+		return
+	}
+
+	rp.h(Resp{
+		Msg:  "ok",
+		Code: 1000,
+		Data: data,
+	})
+}
 
 func handleGetAllPublishData(w http.ResponseWriter, r *http.Request) {
 	var rp = Resp{w: w}
@@ -271,6 +506,59 @@ func handleGetAllPublishData(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data, err := redis.NewRM().GetAllPublishData(sportKey)
+	if err != nil {
+		rp.h(Resp{
+			Msg:  err.Error(),
+			Code: 1004,
+			Data: "0",
+		})
+		return
+	}
+
+	rp.h(Resp{
+		Msg:  "ok",
+		Code: 1000,
+		Data: data,
+	})
+
+}
+
+func handleGetTasksByCityAndSport(w http.ResponseWriter, r *http.Request) {
+	var rp = Resp{w: w}
+	if r.Method != http.MethodGet {
+		rp.h(Resp{
+			Msg:  "invalid request",
+			Code: 1001,
+			Data: "0",
+		})
+		return
+	}
+
+	uid := r.FormValue("uid")
+	sportKey := r.FormValue("sport_key")
+	city := r.FormValue("city")
+	if sportKey == "" || city == "" {
+		rp.h(Resp{
+			Msg:  "invalid parameter",
+			Code: 1002,
+			Data: "0",
+		})
+		return
+	}
+
+	if err := redis.NewRM().GetWxOpenid(uid); err != nil {
+		rp.h(Resp{
+			Msg:  err.Error(),
+			Code: 1003,
+			Data: "0",
+		})
+		return
+	}
+
+	cp := pinyin.LazyPinyin(city, pinyin.NewArgs())
+	city = strings.Join(cp, "")
+
+	data, err := redis.NewRM().GetTasksByCityAndSport(sportKey, city)
 	if err != nil {
 		rp.h(Resp{
 			Msg:  err.Error(),
@@ -1460,6 +1748,16 @@ func handleShowSportsSquare(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	fdd, err := redis.NewRM().FilterVenueData()
+	if err != nil {
+		rp.h(Resp{
+			Msg:  err.Error(),
+			Code: 1007,
+			Data: "0",
+		})
+		return
+	}
+
 	go func() {
 		if !openid.NewWhiteList(uid).IsWhite() {
 			if err := ddw.NewDDWarn(fmt.Sprintf("用户id：%s，城市：%s，选择了：%s运动", uid, city, keyWord)).Send(); err != nil {
@@ -1475,7 +1773,7 @@ func handleShowSportsSquare(w http.ResponseWriter, r *http.Request) {
 		Code:       1000,
 		Data:       true,
 		OtherData:  ol,
-		FilterData: redis.NewRM().FilterVenueData(),
+		FilterData: fdd,
 		Venues:     venues,
 		Btn:        btn,
 	})
@@ -1850,68 +2148,6 @@ func handleOnline(w http.ResponseWriter, r *http.Request) {
 		Data: ol,
 	})
 
-}
-
-// 生成唯一key
-func chatKey(a, b string) string {
-	if a < b {
-		return a + "|" + b
-	}
-	return b + "|" + a
-}
-
-func handlePublishDataWs(w http.ResponseWriter, r *http.Request) {
-	userID := r.URL.Query().Get("user")
-	if userID == "" {
-		http.Error(w, "missing user", http.StatusBadRequest)
-		return
-	}
-	conn, _ := upgrader.Upgrade(w, r, nil)
-
-	mu.Lock()
-	clients[userID] = conn
-
-	// 🔥 登录时推送该用户参与过的所有历史消息
-	for key, history := range chatHistory {
-		if strings.Contains(key, userID) {
-			for _, m := range history {
-				if err := conn.WriteJSON(m); err != nil {
-					log.Println("fail to send publish data 1, error: ", err.Error())
-				}
-			}
-		}
-	}
-	mu.Unlock()
-
-	// 监听消息
-	for {
-		_, data, err := conn.ReadMessage()
-		if err != nil {
-			break
-		}
-		var msg PublishMessage
-		if err := json.Unmarshal(data, &msg); err != nil {
-			continue
-		}
-		msg.Time = time.Now().Format("2006-01-02 15:04:05")
-
-		key := chatKey(msg.From, msg.To)
-
-		mu.Lock()
-		chatHistory[key] = append(chatHistory[key], msg)
-
-		// 转发给接收方
-		if toConn, ok := clients[msg.To]; ok {
-			if err := toConn.WriteJSON(msg); err != nil {
-				log.Println("fail to send publish data 2, error: ", err.Error())
-			}
-		}
-		mu.Unlock()
-	}
-
-	mu.Lock()
-	delete(clients, userID)
-	mu.Unlock()
 }
 
 // handleConnections 聊天室接收到的用户发的信息

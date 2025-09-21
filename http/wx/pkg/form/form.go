@@ -203,6 +203,7 @@ type UpdateVenueInfo struct {
 
 type FilterField struct {
 	Id   int    `json:"id"`
+	Type int    `json:"type"`
 	Name string `json:"name"`
 }
 
@@ -224,32 +225,47 @@ type WxBtnText struct {
 }
 
 type PublishData struct {
-	Id          string  `json:"id" validate:"required"` // 生成唯一的任务id
-	City        string  `json:"city" validate:"required"`
-	UserId      string  `json:"user_id" validate:"required"` // 发布用户就用wx的openid
-	NickName    string  `json:"nick_name" validate:"required"`
-	Img         string  `json:"img" validate:"required"`
-	Content     string  `json:"content" validate:"required"`
-	Addr        string  `json:"addr" validate:"required"`
-	Title       string  `json:"title" validate:"required"` // 篮球场简称
-	Date        string  `json:"date" validate:"required"`  // 用户指定的陪练时间
-	PublishDate string  `json:"publish_date"`              // 用户发布的时间，后端写
-	Price       string  `json:"price" validate:"required"`
-	GenderReq   string  `json:"gender_req" validate:"required"`
-	SportKey    string  `json:"sport_key" validate:"required"`
-	Time        string  `json:"time"` // 创建时间，后端写
-	Players     string  `json:"players" validate:"required"`
-	Lng         float64 `json:"lng" validate:"required"`
-	Lat         float64 `json:"lat" validate:"required"`
-	Finish      bool    `json:"finish"`
-	IsDel       bool    `json:"is_del"`
-	IsPublisher bool    `json:"is_publisher"`
+	UserCount   []*UserRoomID `json:"user_count"`                  // 沟通人数
+	Id          string        `json:"id" validate:"required"`      // 生成唯一的任务id
+	Rid         string        `json:"rid"`                         // room id
+	City        string        `json:"city" validate:"required"`    // 城市：中文
+	CityPy      string        `json:"city_py"`                     // 城市拼音：shenzhenshi
+	UserId      string        `json:"user_id" validate:"required"` // 发布用户就用wx的openid
+	NickName    string        `json:"nick_name" validate:"required"`
+	Img         string        `json:"img" validate:"required"`
+	Content     string        `json:"content" validate:"required"`
+	Addr        string        `json:"addr" validate:"required"`
+	Title       string        `json:"title" validate:"required"` // 篮球场简称
+	Date        string        `json:"date" validate:"required"`  // 用户指定的陪练时间
+	PublishDate string        `json:"publish_date"`              // 用户发布的时间，后端写
+	Price       string        `json:"price" validate:"required"`
+	GenderReq   string        `json:"gender_req" validate:"required"`
+	SportKey    string        `json:"sport_key" validate:"required"`
+	Time        string        `json:"time"` // 创建时间，后端写
+	Players     string        `json:"players" validate:"required"`
+	Lng         float64       `json:"lng" validate:"required"`
+	Lat         float64       `json:"lat" validate:"required"`
+	OnlineNum   int           `json:"online_num"`
+	Finish      bool          `json:"finish"`
+	IsDel       bool          `json:"is_del"`
+	IsPublisher bool          `json:"is_publisher"`
 }
 
 type MissionStatus struct {
-	Id       string `json:"id" validate:"required"`
+	Id       string `json:"id" validate:"required"` // 任务id
 	UserId   string `json:"user_id" validate:"required"`
 	City     string `json:"city" validate:"required"`
+	CityPy   string `json:"city_py"`
 	SportKey string `json:"sport_key" validate:"required"`
-	Status   int    `json:"status" validate:"required"` // 1.表示完成，2.表示删除
+	Status   int    `json:"status" validate:"required"` // 1.表示完成，2.表示删除，3.撤销删除，4.撤销完成
+}
+
+type UserRoomID struct {
+	Tid       string `json:"tid" validate:"required"`
+	Rid       string `json:"rid"`
+	NickName  string `json:"nick_name" validate:"required"`
+	Img       string `json:"img" validate:"required"`
+	UserId    string `json:"user_id" validate:"required"`
+	City      string `json:"city" validate:"required"`
+	UserCount int    `json:"user_count"`
 }
