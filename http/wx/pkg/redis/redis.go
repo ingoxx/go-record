@@ -1447,7 +1447,7 @@ func (r *RM) GetWxBtnText() ([]*form.WxBtnText, error) {
 		{"id": 1, "name": "获取更多场地图片"},
 		{"id": 2, "name": "发布付费陪练"},
 		{"id": 3, "name": "场地"},
-		{"id": 4, "name": "陪练"}
+		{"id": 4, "name": "查看发布"}
 	]`
 	var fd []*form.WxBtnText
 
