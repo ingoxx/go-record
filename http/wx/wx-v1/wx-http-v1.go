@@ -1798,7 +1798,7 @@ func handleShowSportsSquare(w http.ResponseWriter, r *http.Request) {
 	rp.h(Resp{
 		Msg:        "ok",
 		Code:       1000,
-		Data:       false, // true：打开所有功能，false：关闭大部分功能
+		Data:       true, // true：打开所有功能，false：关闭大部分功能
 		OtherData:  ol,
 		FilterData: fdd,
 		Venues:     venues,
