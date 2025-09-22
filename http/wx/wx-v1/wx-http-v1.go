@@ -73,6 +73,7 @@ type Resp struct {
 	Venues     interface{} `json:"venues"`
 	Data       interface{} `json:"data"`
 	Btn        interface{} `json:"btn"`
+	PubControl interface{} `json:"pub_control"`
 	Msg        string      `json:"msg"`
 	Code       int         `json:"code"`
 }
@@ -123,7 +124,6 @@ func main() {
 	mux.HandleFunc("/get-user-list", handleGetUserList)
 	mux.HandleFunc("/get-venue-img", handleGetVenueImg)
 	mux.HandleFunc("/add-publish-data", handleAddPublishData)
-	mux.HandleFunc("/update-publish-data", handleUpdatePublish)
 	mux.HandleFunc("/update-single-publish-data", handleUpdateSinglePublishData)
 	mux.HandleFunc("/get-user-publish-data", handleGetUserPublishData)
 	mux.HandleFunc("/get-all-user-publish-data", handleGetAllPublishData)
@@ -320,6 +320,14 @@ func handleAddPublishData(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	go func() {
+		if !openid.NewWhiteList(uid).IsWhite() {
+			if err := ddw.NewDDWarn(fmt.Sprintf("用户: %s, \n城市：%s, \n运动类型：%s, \n发布了任务，id为：%s, \n价格为：%s, \n内容为：%s", uid, data.City, data.SportKey, data.Id, data.Price, data.Content)).Send(); err != nil {
+				log.Println(err.Error())
+			}
+		}
+	}()
+
 	cityPy := pinyin.LazyPinyin(data.City, pinyin.NewArgs())
 	data.CityPy = strings.Join(cityPy, "")
 
@@ -339,8 +347,6 @@ func handleAddPublishData(w http.ResponseWriter, r *http.Request) {
 		Data: fd,
 	})
 }
-
-func handleUpdatePublish(w http.ResponseWriter, r *http.Request) {}
 
 // handleUpdateSinglePublishData 更新某个发布任务，标记删除或者完成
 func handleUpdateSinglePublishData(w http.ResponseWriter, r *http.Request) {
@@ -417,6 +423,14 @@ func handleUpdateSinglePublishData(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	go func() {
+		if !openid.NewWhiteList(uid).IsWhite() {
+			if err := ddw.NewDDWarn(fmt.Sprintf("用户: %s, \n城市：%s, \n运动类型：%s, \n删除了发布任务，id为：%s", uid, data.City, data.SportKey, data.Id)).Send(); err != nil {
+				log.Println(err.Error())
+			}
+		}
+	}()
+
 	rp.h(Resp{
 		Msg:  "ok",
 		Code: 1000,
@@ -427,6 +441,7 @@ func handleUpdateSinglePublishData(w http.ResponseWriter, r *http.Request) {
 
 }
 
+// handleGetUserPublishData 用户自己的发布记录
 func handleGetUserPublishData(w http.ResponseWriter, r *http.Request) {
 	var rp = Resp{w: w}
 	if r.Method != http.MethodGet {
@@ -474,6 +489,7 @@ func handleGetUserPublishData(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// handleGetAllPublishData 只有管理员才能查看不限制城市的，但限制运动类型的发布的信息，比如：查询所有篮球类型的发布信息
 func handleGetAllPublishData(w http.ResponseWriter, r *http.Request) {
 	var rp = Resp{w: w}
 	if r.Method != http.MethodGet {
@@ -516,13 +532,15 @@ func handleGetAllPublishData(w http.ResponseWriter, r *http.Request) {
 	}
 
 	rp.h(Resp{
-		Msg:  "ok",
-		Code: 1000,
-		Data: data,
+		Msg:        "ok",
+		Code:       1000,
+		Data:       data,
+		PubControl: false, // false: 可以沟通，true: 不可沟通
 	})
 
 }
 
+// handleGetTasksByCityAndSport 获取指定城市，指定运动类型的所有发布记录，比如：用户当前城市是深圳市选择的运动类型是篮球的所有发布信息
 func handleGetTasksByCityAndSport(w http.ResponseWriter, r *http.Request) {
 	var rp = Resp{w: w}
 	if r.Method != http.MethodGet {
@@ -568,10 +586,19 @@ func handleGetTasksByCityAndSport(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	go func() {
+		if !openid.NewWhiteList(uid).IsWhite() {
+			if err := ddw.NewDDWarn(fmt.Sprintf("用户: %s, \n城市：%s, \n运动类型：%s, \n查看了陪练信息", uid, city, sportKey)).Send(); err != nil {
+				log.Println(err.Error())
+			}
+		}
+	}()
+
 	rp.h(Resp{
-		Msg:  "ok",
-		Code: 1000,
-		Data: data,
+		Msg:        "ok",
+		Code:       1000,
+		Data:       data,
+		PubControl: false, // false: 可以沟通，true: 不可沟通
 	})
 
 }
@@ -650,14 +677,14 @@ func handleGetUserList(w http.ResponseWriter, r *http.Request) {
 	}
 
 	uid := r.FormValue("uid")
-	//if uid != config.Admin {
-	//	rp.h(Resp{
-	//		Msg:  "invalid parameter",
-	//		Code: 1002,
-	//		Data: "0",
-	//	})
-	//	return
-	//}
+	if uid != config.Admin {
+		rp.h(Resp{
+			Msg:  "invalid parameter",
+			Code: 1002,
+			Data: "0",
+		})
+		return
+	}
 
 	if err := redis.NewRM().GetWxOpenid(uid); err != nil {
 		rp.h(Resp{
@@ -1437,7 +1464,7 @@ func handleGetAllSports(w http.ResponseWriter, r *http.Request) {
 
 }
 
-// handleOnlineData
+// handleOnlineData 在线人数
 func handleOnlineData(w http.ResponseWriter, r *http.Request) {
 	var rp = Resp{w: w}
 	if r.Method != http.MethodPost {
@@ -1771,7 +1798,7 @@ func handleShowSportsSquare(w http.ResponseWriter, r *http.Request) {
 	rp.h(Resp{
 		Msg:        "ok",
 		Code:       1000,
-		Data:       true,
+		Data:       false, // true：打开所有功能，false：关闭大部分功能
 		OtherData:  ol,
 		FilterData: fdd,
 		Venues:     venues,

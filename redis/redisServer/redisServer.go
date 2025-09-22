@@ -13,7 +13,7 @@ import (
 
 var rdPool = redis.NewClient(
 	&redis.Options{
-		Addr:         config.RedisAddr,
+		Addr:         config.RedisAddrO,
 		DB:           1,
 		MinIdleConns: 5,
 		Password:     config.RedPwd,
@@ -90,7 +90,7 @@ type AddrListForm struct {
 }
 
 func main() {
-	getAllData()
+	getOpenIdList()
 }
 
 func updateSquare() {
@@ -251,11 +251,16 @@ func getOpenIdList() {
 		//v.City = "深圳"
 		//
 		//v.NickName = eva.NewSportType("bks").RandomNickname()
-		fmt.Println("--------------------------")
-		fmt.Println(v.Openid)
-		fmt.Println(v.City)
+		//fmt.Println("--------------------------")
+		//fmt.Println(v.Openid)
+		//fmt.Println(v.City)
+		if v.Openid == "ogR3E62jXXJMbVcImRqMA1gTSegM" {
+			fmt.Println("login time >>> ", v.Time)
+		}
 
 	}
+
+	fmt.Println("总的用户数")
 
 	//b, err := json.Marshal(&data)
 	//if err != nil {

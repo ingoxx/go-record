@@ -1405,8 +1405,8 @@ func (r *RM) FilterVenueData() ([]*form.FilterField, error) {
 		{"id": 1, "name": "距离最近", "type": 1000 },
 		{"id": 2, "name": "组队人数", "type": 1000},
 		{"id": 3, "name": "评价数量", "type": 1000},
-		{"id": 4, "name": "价格", "type": 2000},
 		{"id": 5, "name": "新发布", "type": 2000},
+		{"id": 4, "name": "价格", "type": 2000},
 		{"id": 6, "name": "已删除", "type": 2000},
 		{"id": 7, "name": "生效中", "type": 2000}
 	]`
