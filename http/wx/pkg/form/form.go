@@ -168,15 +168,17 @@ type GroupOnlineStatus struct {
 	OnlineUser string `json:"online_user"`
 }
 
-type JoinGroupUsers struct {
-	GroupId  string `json:"group_id" validate:"required"`
-	User     string `json:"user"`
-	NickName string `json:"nick_name"`
-	Img      string `json:"img"`
-	Style    string `json:"style"`
-	Skill    string `json:"skill"`
-	Time     string `json:"time"`
-	Oi       string `json:"oi"`
+// JoinGroupUser 单个用户加入记录
+type JoinGroupUser struct {
+	GroupId   string `json:"group_id" validate:"required"`
+	User      string `json:"user"`
+	NickName  string `json:"nick_name"`
+	Img       string `json:"img"`
+	Style     string `json:"style"`
+	Skill     string `json:"skill"`
+	Time      string `json:"time"`
+	Oi        string `json:"oi"`
+	GroupType int    `json:"group_type"` // 1=养生局; 2=竞技局; 3=强度局
 }
 
 type MsgBoard struct {

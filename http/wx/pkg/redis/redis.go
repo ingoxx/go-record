@@ -200,11 +200,6 @@ func (r *RM) getVenueInfo(data []*form.SaveInRedis, lat, lng, sportKey, cnKey st
 
 	for _, v := range someData {
 		// 统计当前在线人数
-		//online, err := r.GetGroupOnline(v.Id)
-		//if err != nil {
-		//	return data, err
-		//}
-		//v.Online = online
 		v.Online = "0"
 
 		sd := &form.OnlineData{
