@@ -177,8 +177,8 @@ type JoinGroupUsers struct {
 	Style     string `json:"style"`
 	Skill     string `json:"skill"`
 	Time      string `json:"time"`
-	Oi        string `json:"oi"`
-	GroupType int    `json:"g_type"` // 1=养生局; 2=竞技局; 3=强度局
+	Oi        string `json:"oi"`         // 1=退出，2=加入
+	GroupType int    `json:"group_type"` // 1=养生局; 2=竞技局; 3=强度局
 }
 
 type MsgBoard struct {

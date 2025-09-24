@@ -74,6 +74,7 @@ type Resp struct {
 	Data       interface{} `json:"data"`
 	Btn        interface{} `json:"btn"`
 	PubControl interface{} `json:"pub_control"`
+	GroupType  interface{} `json:"group_type"`
 	Msg        string      `json:"msg"`
 	Code       int         `json:"code"`
 }
@@ -1315,7 +1316,13 @@ func handleUserJoinGroup(w http.ResponseWriter, r *http.Request) {
 
 	go func() {
 		if !openid.NewWhiteList(data.User).IsWhite() {
-			if err := ddw.NewDDWarn(fmt.Sprintf("用户: %s, 群组：%s, 用户点击了组队按钮", data.User, data.GroupId)).Send(); err != nil {
+			var text string
+			if data.Oi == "1" {
+				text = "退出了"
+			} else if data.Oi == "2" {
+				text = "加入了"
+			}
+			if err := ddw.NewDDWarn(fmt.Sprintf("用户: %s, 群组：%s, 用户%s组队", data.User, data.GroupId, text)).Send(); err != nil {
 				log.Println(err.Error())
 			}
 		}
@@ -1803,6 +1810,7 @@ func handleShowSportsSquare(w http.ResponseWriter, r *http.Request) {
 		FilterData: fdd,
 		Venues:     venues,
 		Btn:        btn,
+		GroupType:  redis.NewRM().GetGroupType(),
 	})
 }
 

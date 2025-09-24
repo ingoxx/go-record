@@ -1453,6 +1453,14 @@ func (r *RM) GetWxBtnText() ([]*form.WxBtnText, error) {
 	return fd, nil
 }
 
+func (r *RM) GetGroupType() []map[string]interface{} {
+	return []map[string]interface{}{
+		{"id": 1, "name": "养生局", "icon": "https://ai.anythingai.online/static/profile3/hel-2.svg"},
+		{"id": 2, "name": "竞技局", "icon": "https://ai.anythingai.online/static/profile3/sports-11.svg"},
+		{"id": 3, "name": "强度局", "icon": "https://ai.anythingai.online/static/profile3/figh-2.svg"},
+	}
+}
+
 // AddPublish 发布任务
 func (r *RM) AddPublish(data *form.PublishData) ([]*form.PublishData, error) {
 	var all []*form.PublishData
