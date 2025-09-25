@@ -587,14 +587,6 @@ func handleGetTasksByCityAndSport(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	go func() {
-		if !openid.NewWhiteList(uid).IsWhite() {
-			if err := ddw.NewDDWarn(fmt.Sprintf("用户: %s, \n城市：%s, \n运动类型：%s, \n查看了陪练信息", uid, city, sportKey)).Send(); err != nil {
-				log.Println(err.Error())
-			}
-		}
-	}()
-
 	rp.h(Resp{
 		Msg:        "ok",
 		Code:       1000,
@@ -648,14 +640,6 @@ func handleGetVenueImg(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-
-	go func() {
-		if !openid.NewWhiteList(uid).IsWhite() {
-			if err := ddw.NewDDWarn(fmt.Sprintf("用户id：%s，场地id：%s，场地类型：%s，场地城市：%s，点击了获取场地图片按钮", uid, aid, sportKey, city)).Send(); err != nil {
-				log.Println(err.Error())
-			}
-		}
-	}()
 
 	rp.h(Resp{
 		Msg:  "ok",
@@ -778,14 +762,6 @@ func handleUpdateSportsVenue(w http.ResponseWriter, r *http.Request) {
 	fullKey := fmt.Sprintf("%s_%s", strings.Join(cityPy, ""), data.SportKey) // 拼接的key：shenzhenshi_bks
 	data.CityPy = strings.Join(cityPy, "")
 	data.SportKey = fullKey
-
-	go func() {
-		if !openid.NewWhiteList(uid).IsWhite() {
-			if err := ddw.NewDDWarn(fmt.Sprintf("用户id：%s更新了场地图片，\n场地id：%s，\n场地类型：%s，\n场地城市：%s，\n场地图片：%s", uid, data.Id, data.SportKey, data.City, data.Img)).Send(); err != nil {
-				log.Println(err.Error())
-			}
-		}
-	}()
 
 	ol, err := redis.NewRM().UpdateVenueInfo(data)
 	if err := json.Unmarshal(b, &data); err != nil {
@@ -945,14 +921,6 @@ func handleUserLikedReviews(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	go func() {
-		if !openid.NewWhiteList(data.User).IsWhite() {
-			if err := ddw.NewDDWarn(fmt.Sprintf("用户: %s, \n群组：%s, \n点赞了评价：%s", data.User, data.GroupId, data.Evaluate)).Send(); err != nil {
-				log.Println(err.Error())
-			}
-		}
-	}()
-
 	ol, err := redis.NewRM().UserLikedReviews(data, sportKey)
 	if err != nil {
 		rp.h(Resp{
@@ -1102,14 +1070,6 @@ func handleGetUserReviews(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	go func() {
-		if !openid.NewWhiteList(uid).IsWhite() {
-			if err := ddw.NewDDWarn(fmt.Sprintf("用户: %s, 查看了场地评价", uid)).Send(); err != nil {
-				log.Println(err.Error())
-			}
-		}
-	}()
-
 	rp.h(Resp{
 		Msg:  "ok",
 		Code: 1000,
@@ -1206,14 +1166,6 @@ func handleWxUpload(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-
-	go func() {
-		if !openid.NewWhiteList(uid).IsWhite() {
-			if err := ddw.NewDDWarn(fmt.Sprintf("用户: %s, 上传了头像", uid)).Send(); err != nil {
-				log.Println(err.Error())
-			}
-		}
-	}()
 
 	// 更新头像
 	if up == "1" {
@@ -1406,14 +1358,6 @@ func handleGetJoinUsers(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-
-	go func() {
-		if !openid.NewWhiteList(uid).IsWhite() {
-			if err := ddw.NewDDWarn(fmt.Sprintf("用户id：%s，查看了组队信息", uid)).Send(); err != nil {
-				log.Println(err.Error())
-			}
-		}
-	}()
 
 	rp.h(Resp{
 		Msg:  "ok",
@@ -1791,14 +1735,6 @@ func handleShowSportsSquare(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-
-	go func() {
-		if !openid.NewWhiteList(uid).IsWhite() {
-			if err := ddw.NewDDWarn(fmt.Sprintf("用户id：%s，城市：%s，选择了：%s运动", uid, city, keyWord)).Send(); err != nil {
-				log.Println(err.Error())
-			}
-		}
-	}()
 
 	go redis.NewRM().UpdateWxUser(uid, city)
 
@@ -2221,13 +2157,6 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 	if err := json.Unmarshal(msgBytes, &initMsg); err != nil {
 		log.Println("解析初始化消息失败:", err)
 		return
-	}
-
-	// 用户进入了聊天室就发送通知
-	if !openid.NewWhiteList(initMsg.UserID).IsWhite() {
-		if err := ddw.NewDDWarn(fmt.Sprintf("用户: %s, 进入了群组：%s聊天室\n", initMsg.UserID, initMsg.GroupID)).Send(); err != nil {
-			log.Println(err.Error())
-		}
 	}
 
 	groupID := initMsg.GroupID
