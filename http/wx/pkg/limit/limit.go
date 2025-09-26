@@ -8,7 +8,6 @@ import (
 	"github.com/ingoxx/go-record/http/wx/pkg/config"
 	"github.com/ingoxx/go-record/http/wx/pkg/form"
 	"io"
-	"log"
 	"net/http"
 	"time"
 )
@@ -35,9 +34,8 @@ func (t TxMapApi) KeyWordSearch() ([]*form.SaveInRedis, error) {
 	offset := 1
 
 	for offset <= totalPages {
-		//url := fmt.Sprintf("%s/ws/place/v1/suggestion?region=%s&keyword=%s&key=%s&page_size=20&page_index=%d", t.Url, t.City, t.KeyWord, config.QqKey, offset)
-		url := fmt.Sprintf("%s/ws/place/v1/search?boundary=region(%s,)&keyword=%s&key=%s&page_size=20&page_index=%d", t.Url, t.City, t.KeyWord, config.QqKey, offset)
-		fmt.Println(url)
+		url := fmt.Sprintf("%s/ws/place/v1/suggestion?region=%s&keyword=%s&key=%s&page_size=20&page_index=%d", t.Url, t.City, t.KeyWord, config.QqKey, offset)
+		//url := fmt.Sprintf("%s/ws/place/v1/search?boundary=region(%s,)&keyword=%s&key=%s&page_size=20&page_index=%d", t.Url, t.City, t.KeyWord, config.QqKey, offset)
 		resp, err := http.Get(url)
 		if err != nil {
 			return sd, err
@@ -51,13 +49,16 @@ func (t TxMapApi) KeyWordSearch() ([]*form.SaveInRedis, error) {
 		}
 
 		if err := json.Unmarshal(b, &fd); err != nil {
+			fmt.Println(err)
 			return sd, err
 		}
 
+		fmt.Println(fd)
+		return sd, err
 		if count == 0 {
 			count = fd.Count
 			if count == 0 {
-				return sd, errors.New("没有找到场地数据")
+				return sd, errors.New(fd.Message)
 			}
 			quotient := count / 20
 			remainder := count % 20
@@ -66,8 +67,6 @@ func (t TxMapApi) KeyWordSearch() ([]*form.SaveInRedis, error) {
 			} else {
 				totalPages = quotient
 			}
-
-			fmt.Printf("找到总：%d条数据, %d页\n", count, totalPages)
 		}
 
 		for _, v := range fd.Data {
@@ -88,38 +87,12 @@ func (t TxMapApi) KeyWordSearch() ([]*form.SaveInRedis, error) {
 
 		offset++
 		time.Sleep(500 * time.Millisecond)
+		return sd, nil
 	}
 
 	return sd, nil
 }
 
-func uniqueByName(people []*form.SaveInRedis) []*form.SaveInRedis {
-	seen := make(map[string]bool) // 记录已经出现的Name
-	result := make([]*form.SaveInRedis, 0, len(people))
-
-	for _, p := range people {
-		if !seen[p.Title] { // 如果没出现过该Name
-			seen[p.Title] = true
-			result = append(result, p)
-		}
-	}
-	return result
-}
-
 func main() {
-	search, err := NewTxMapApi("https://apis.map.qq.com", "深圳市", "篮球场").KeyWordSearch()
-	if err != nil {
-		log.Fatalln(err)
-	}
-
-	ns := uniqueByName(search)
-
-	fmt.Println("去重后的总的数据：", len(ns))
-
-	for _, v := range ns {
-		fmt.Println("-------------------------")
-		fmt.Println(v.Addr)
-		fmt.Println(v.Title)
-	}
-
+	NewTxMapApi("https://restapi.amap.com", "深圳市", "公共厕所").KeyWordSearch()
 }

@@ -34,17 +34,13 @@ func (s SportType) DefaultEvaBoard() ([]*form.MsgBoard, error) {
 {"evaluate_id": "ddd", "is_like": false, "like": 0, "group_id": "aaa-bbb-ccc-ddd-eee", "user": "嘎嘣脆", "evaluate": "这里打球得掉层皮才能走", "img": "https://mp-578c2584-f82c-45e7-9d53-51332c711501.cdn.bspapp.com/wx-fbs/wx_4.JPG", "time": "2024-04-05 16:32:15"},
 {"evaluate_id": "eee", "is_like": false, "like": 0, "group_id": "aaa-bbb-ccc-ddd-eee", "user": "挖得hell", "evaluate": "热身运动一定要做足，篮底内线肉搏才能赢", "img": "https://mp-578c2584-f82c-45e7-9d53-51332c711501.cdn.bspapp.com/wx-fbs/wx_2.JPG", "time": "2024-04-05 16:32:15"}
 		]`
-	}
-
-	if s.Name == "bms" {
+	} else if s.Name == "bms" {
 		data = `[
 		{"evaluate_id": "ggg", "is_like": false, "like": 0, "group_id": "aaa-bbb-ccc-ddd-eee", "user": "jkasd", "evaluate": "来个人吧", "img": "https://mp-578c2584-f82c-45e7-9d53-51332c711501.cdn.bspapp.com/profile2/2147.png", "time": "2024-04-05 16:32:15"},
 		  {"evaluate_id": "sss", "is_like": false, "like": 0, "group_id": "aaa-bbb-ccc-ddd-eee", "user": "阿毛", "evaluate": "来个高手0.0", "img": "https://mp-578c2584-f82c-45e7-9d53-51332c711501.cdn.bspapp.com/profile2/2147.png", "time": "2024-04-05 16:32:15"},
 		{"evaluate_id": "asd", "is_like": false, "like": 0, "group_id": "aaa-bbb-ccc-ddd-eee", "user": "16888", "evaluate": "夏天太热", "img": "https://mp-578c2584-f82c-45e7-9d53-51332c711501.cdn.bspapp.com/profile2/2146.png", "time": "2024-04-05 16:32:15"}
 		]`
-	}
-
-	if s.Name == "fbs" {
+	} else if s.Name == "fbs" {
 		data = `[
 		  {"evaluate_id": "ada", "is_like": false, "like": 0, "group_id": "aaa-bbb-ccc-ddd-eee", "user": "上海吴燕组", "evaluate": "差点被踢爆l_l", "img": "https://mp-578c2584-f82c-45e7-9d53-51332c711501.cdn.bspapp.com/profile2/2145.png", "time": "2024-04-05 16:32:15"},
 			{ "evaluate_id": "drj", "is_like": false, "like": 0, "group_id": "aaa-bbb-ccc-ddd-eee", "user": "门将界的漏勺", "evaluate": "一场比赛丢了八个球，对手都不好意思庆祝了", "img": "https://mmbiz.qpic.cn/mmbiz/icTdbqWNOwNRna42FI242Lcia07jQodd2FJGIYQfG0LAJGFxM4FbnQP6yfMxBgJ0F3YRqJCJ1aPAK2dQagdusBZg/0", "time": "2024-04-05 16:32:15"},
@@ -53,17 +49,13 @@ func (s SportType) DefaultEvaBoard() ([]*form.MsgBoard, error) {
 		  { "evaluate_id": "sbt6", "is_like": false, "like": 0, "group_id": "aaa-bbb-ccc-ddd-eee", "user": "只会大脚解围", "evaluate": "全场最远的射门是我解围踢出的", "img": "https://mmbiz.qpic.cn/mmbiz/icTdbqWNOwNRna42FI242Lcia07jQodd2FJGIYQfG0LAJGFxM4FbnQP6yfMxBgJ0F3YRqJCJ1aPAK2dQagdusBZg/0", "time": "2024-04-05 16:32:15"},
 		  { "evaluate_id": "ajsdfaa", "is_like": false, "like": 0, "group_id": "aaa-bbb-ccc-ddd-eee", "user": "假装C罗", "evaluate": "学C罗庆祝倒是像，就是射门全飞看台", "img": "https://mmbiz.qpic.cn/mmbiz/icTdbqWNOwNRna42FI242Lcia07jQodd2FJGIYQfG0LAJGFxM4FbnQP6yfMxBgJ0F3YRqJCJ1aPAK2dQagdusBZg/0", "time": "2024-04-05 16:32:15"}
 		]`
-	}
-
-	if s.Name == "sws" {
+	} else if s.Name == "sws" {
 		data = `[
 		  {"evaluate_id": "ewgw", "is_like": false, "like": 0, "group_id": "aaa-bbb-ccc-ddd-eee", "user": "深圳郭富城", "evaluate": "蛙泳太难了l_l", "img": "https://mmbiz.qpic.cn/mmbiz/icTdbqWNOwNRna42FI242Lcia07jQodd2FJGIYQfG0LAJGFxM4FbnQP6yfMxBgJ0F3YRqJCJ1aPAK2dQagdusBZg/0", "time": "2024-04-05 16:32:15"},
 			{"evaluate_id": "qt7un", "is_like": false, "like": 0, "group_id": "aaa-bbb-ccc-ddd-eee", "user": "游泳别放屁", "evaluate": "恳求各位不要在泳池里边放屁拉屎!!!", "img": "https://mmbiz.qpic.cn/mmbiz/icTdbqWNOwNRna42FI242Lcia07jQodd2FJGIYQfG0LAJGFxM4FbnQP6yfMxBgJ0F3YRqJCJ1aPAK2dQagdusBZg/0", "time": "2024-04-05 16:32:15"},
 			{"evaluate_id": "ikho", "is_like": false, "like": 0, "group_id": "aaa-bbb-ccc-ddd-eee", "user": "666", "evaluate": "蝶泳侠", "img": "https://mmbiz.qpic.cn/mmbiz/icTdbqWNOwNRna42FI242Lcia07jQodd2FJGIYQfG0LAJGFxM4FbnQP6yfMxBgJ0F3YRqJCJ1aPAK2dQagdusBZg/0", "time": "2024-04-05 16:32:15"}
 		]`
-	}
-
-	if s.Name == "tns" {
+	} else if s.Name == "tns" {
 		data = `[
 		  { "evaluate_id": "rtgthb", "is_like": false, "like": 0, "group_id": "aaa-bbb-ccc-ddd-eee", "user": "反手如刮风", "evaluate": "打出去的球像流星，别人还没反应过来就出界了", "img": "https://mmbiz.qpic.cn/mmbiz/icTdbqWNOwNRna42FI242Lcia07jQodd2FJGIYQfG0LAJGFxM4FbnQP6yfMxBgJ0F3YRqJCJ1aPAK2dQagdusBZg/0", "time": "2024-04-05 16:32:15"},
 		  { "evaluate_id": "hefwf", "is_like": false, "like": 0, "group_id": "aaa-bbb-ccc-ddd-eee", "user": "球拍杀手小王", "evaluate": "打了三局摔坏两把拍子，商家都笑开花了", "img": "https://mmbiz.qpic.cn/mmbiz/icTdbqWNOwNRna42FI242Lcia07jQodd2FJGIYQfG0LAJGFxM4FbnQP6yfMxBgJ0F3YRqJCJ1aPAK2dQagdusBZg/0", "time": "2024-04-05 16:32:15"},
@@ -72,22 +64,19 @@ func (s SportType) DefaultEvaBoard() ([]*form.MsgBoard, error) {
 		  { "evaluate_id": "ytwre", "is_like": false, "like": 0, "group_id": "aaa-bbb-ccc-ddd-eee", "user": "刘小慢", "evaluate": "别人打单打，我打单人羽毛球模式，全程自己发自己接", "img": "https://mmbiz.qpic.cn/mmbiz/icTdbqWNOwNRna42FI242Lcia07jQodd2FJGIYQfG0LAJGFxM4FbnQP6yfMxBgJ0F3YRqJCJ1aPAK2dQagdusBZg/0", "time": "2024-04-05 16:32:15"}
 		]
 `
-	}
-	if s.Name == "gos" {
+	} else if s.Name == "gos" {
 		data = `[
 			{"evaluate_id": "rwt56urt", "is_like": false, "like": 0, "group_id": "aaa-bbb-ccc-ddd-eee", "user": "猴哥", "evaluate": "抽了一下午的空气", "img": "https://mmbiz.qpic.cn/mmbiz/icTdbqWNOwNRna42FI242Lcia07jQodd2FJGIYQfG0LAJGFxM4FbnQP6yfMxBgJ0F3YRqJCJ1aPAK2dQagdusBZg/0", "time": "2024-04-05 16:32:15"},
 		  {"evaluate_id": "w7utrwt5", "is_like": false, "like": 0, "group_id": "aaa-bbb-ccc-ddd-eee", "user": "高尔夫穷人", "evaluate": "玩不起l_l", "img": "https://mmbiz.qpic.cn/mmbiz/icTdbqWNOwNRna42FI242Lcia07jQodd2FJGIYQfG0LAJGFxM4FbnQP6yfMxBgJ0F3YRqJCJ1aPAK2dQagdusBZg/0", "time": "2024-04-05 16:32:15"},
 			{"evaluate_id": "aaa", "is_like": false, "like": 0, "group_id": "aaa-bbb-ccc-ddd-eee", "user": "222", "evaluate": "还行吧l_l", "img": "https://mmbiz.qpic.cn/mmbiz/icTdbqWNOwNRna42FI242Lcia07jQodd2FJGIYQfG0LAJGFxM4FbnQP6yfMxBgJ0F3YRqJCJ1aPAK2dQagdusBZg/0", "time": "2024-04-05 16:32:15"}
 		]`
-	}
-	if s.Name == "rcg" {
+	} else if s.Name == "rcg" {
 		data = `[
 			{"evaluate_id": "rwt56urt", "is_like": false, "like": 0, "group_id": "aaa-bbb-ccc-ddd-eee", "user": "猴哥", "evaluate": "大哥跟牛一样", "img": "https://mmbiz.qpic.cn/mmbiz/icTdbqWNOwNRna42FI242Lcia07jQodd2FJGIYQfG0LAJGFxM4FbnQP6yfMxBgJ0F3YRqJCJ1aPAK2dQagdusBZg/0", "time": "2024-04-05 16:32:15"},
 		  {"evaluate_id": "w7utrwt5", "is_like": false, "like": 0, "group_id": "aaa-bbb-ccc-ddd-eee", "user": "高尔夫穷人", "evaluate": "起飞", "img": "https://mmbiz.qpic.cn/mmbiz/icTdbqWNOwNRna42FI242Lcia07jQodd2FJGIYQfG0LAJGFxM4FbnQP6yfMxBgJ0F3YRqJCJ1aPAK2dQagdusBZg/0", "time": "2024-04-05 16:32:15"},
 			{"evaluate_id": "aaa", "is_like": false, "like": 0, "group_id": "aaa-bbb-ccc-ddd-eee", "user": "222", "evaluate": "快来攀岩", "img": "https://mmbiz.qpic.cn/mmbiz/icTdbqWNOwNRna42FI242Lcia07jQodd2FJGIYQfG0LAJGFxM4FbnQP6yfMxBgJ0F3YRqJCJ1aPAK2dQagdusBZg/0", "time": "2024-04-05 16:32:15"}
 		]`
-	}
-	if s.Name == "hxc" {
+	} else if s.Name == "hxc" {
 		data = `[
   { "evaluate_id": "7u84yk", "is_like": false, "like": 0, "group_id": "aaa-bbb-ccc-ddd-eee", "user": "雪地翻滚王", "evaluate": "本来是来滑雪的，结果一路滚下山比滑还快", "img": "https://mmbiz.qpic.cn/mmbiz/icTdbqWNOwNRna42FI242Lcia07jQodd2FJGIYQfG0LAJGFxM4FbnQP6yfMxBgJ0F3YRqJCJ1aPAK2dQagdusBZg/0", "time": "2024-04-05 16:32:15"},
   { "evaluate_id": "i9rgeh", "is_like": false, "like": 0, "group_id": "aaa-bbb-ccc-ddd-eee", "user": "刹车全靠脸", "evaluate": "下坡不会刹车，最后是靠撞雪人停下来的", "img": "https://mmbiz.qpic.cn/mmbiz/icTdbqWNOwNRna42FI242Lcia07jQodd2FJGIYQfG0LAJGFxM4FbnQP6yfMxBgJ0F3YRqJCJ1aPAK2dQagdusBZg/0", "time": "2024-04-05 16:32:15"},
@@ -96,8 +85,7 @@ func (s SportType) DefaultEvaBoard() ([]*form.MsgBoard, error) {
   { "evaluate_id": "8uf", "is_like": false, "like": 0, "group_id": "aaa-bbb-ccc-ddd-eee", "user": "防寒全靠抖", "evaluate": "装备没穿好，冷到像在跳广场舞取暖", "img": "https://mmbiz.qpic.cn/mmbiz/icTdbqWNOwNRna42FI242Lcia07jQodd2FJGIYQfG0LAJGFxM4FbnQP6yfMxBgJ0F3YRqJCJ1aPAK2dQagdusBZg/0", "time": "2024-04-05 16:32:15"}
 ]
 `
-	}
-	if s.Name == "yjg" {
+	} else if s.Name == "yjg" {
 		data = `[
   { "evaluate_id": "wrt25", "is_like": false, "like": 0, "group_id": "aaa-bbb-ccc-ddd-eee", "user": "下犬式翻车王", "evaluate": "做着做着下犬式，直接变成趴地式睡觉", "img": "https://mmbiz.qpic.cn/mmbiz/icTdbqWNOwNRna42FI242Lcia07jQodd2FJGIYQfG0LAJGFxM4FbnQP6yfMxBgJ0F3YRqJCJ1aPAK2dQagdusBZg/0", "time": "2024-04-05 16:32:15"},
   { "evaluate_id": "5r34r", "is_like": false, "like": 0, "group_id": "aaa-bbb-ccc-ddd-eee", "user": "体式全靠蒙", "evaluate": "老师说进入战士二式，我摆了个招财猫式", "img": "https://mmbiz.qpic.cn/mmbiz/icTdbqWNOwNRna42FI242Lcia07jQodd2FJGIYQfG0LAJGFxM4FbnQP6yfMxBgJ0F3YRqJCJ1aPAK2dQagdusBZg/0", "time": "2024-04-05 16:32:15"},
@@ -106,8 +94,7 @@ func (s SportType) DefaultEvaBoard() ([]*form.MsgBoard, error) {
   { "evaluate_id": "0jidfnjn1", "is_like": false, "like": 0, "group_id": "aaa-bbb-ccc-ddd-eee", "user": "平板撑30秒", "evaluate": "教练说撑两分钟，我撑了三十秒就去喝水了", "img": "https://mmbiz.qpic.cn/mmbiz/icTdbqWNOwNRna42FI242Lcia07jQodd2FJGIYQfG0LAJGFxM4FbnQP6yfMxBgJ0F3YRqJCJ1aPAK2dQagdusBZg/0", "time": "2024-04-05 16:32:15"}
 ]
 `
-	}
-	if s.Name == "tqd" {
+	} else if s.Name == "tqd" {
 		data = `[
   { "evaluate_id": "9a0hfih5y90ha", "is_like": false, "like": 0, "group_id": "aaa-bbb-ccc-ddd-eee", "user": "黑带只会劈叉", "evaluate": "教练让我踢高一点，我直接踢飞了鞋", "img": "https://mmbiz.qpic.cn/mmbiz/icTdbqWNOwNRna42FI242Lcia07jQodd2FJGIYQfG0LAJGFxM4FbnQP6yfMxBgJ0F3YRqJCJ1aPAK2dQagdusBZg/0", "time": "2024-04-05 16:32:15"},
   { "evaluate_id": "259ajsd", "is_like": false, "like": 0, "group_id": "aaa-bbb-ccc-ddd-eee", "user": "腿短踢不到", "evaluate": "别人一脚踢到头，我一脚只能踢到膝盖", "img": "https://mmbiz.qpic.cn/mmbiz/icTdbqWNOwNRna42FI242Lcia07jQodd2FJGIYQfG0LAJGFxM4FbnQP6yfMxBgJ0F3YRqJCJ1aPAK2dQagdusBZg/0", "time": "2024-04-05 16:32:15"},
@@ -115,8 +102,7 @@ func (s SportType) DefaultEvaBoard() ([]*form.MsgBoard, error) {
   { "evaluate_id": "aaa", "is_like": false, "like": 0, "group_id": "aaa-bbb-ccc-ddd-eee", "user": "防守全靠脸", "evaluate": "实战时忘了抬手，结果脸吃了三脚", "img": "https://mmbiz.qpic.cn/mmbiz/icTdbqWNOwNRna42FI242Lcia07jQodd2FJGIYQfG0LAJGFxM4FbnQP6yfMxBgJ0F3YRqJCJ1aPAK2dQagdusBZg/0", "time": "2024-04-05 16:32:15"},
   { "evaluate_id": "aaa", "is_like": false, "like": 0, "group_id": "aaa-bbb-ccc-ddd-eee", "user": "道服系不紧", "evaluate": "踢腿太猛裤子松了，全馆都看见了", "img": "https://mmbiz.qpic.cn/mmbiz/icTdbqWNOwNRna42FI242Lcia07jQodd2FJGIYQfG0LAJGFxM4FbnQP6yfMxBgJ0F3YRqJCJ1aPAK2dQagdusBZg/0", "time": "2024-04-05 16:32:15"}
 ]`
-	}
-	if s.Name == "gym" {
+	} else if s.Name == "gym" {
 		data = `[
   { "evaluate_id": "2149ihasd", "is_like": false, "like": 0, "group_id": "aaa-bbb-ccc-ddd-eee", "user": "杠铃界郭德纲", "evaluate": "深蹲做到怀疑人生，站起来发现裤子裂了", "img": "https://mmbiz.qpic.cn/mmbiz/icTdbqWNOwNRna42FI242Lcia07jQodd2FJGIYQfG0LAJGFxM4FbnQP6yfMxBgJ0F3YRqJCJ1aPAK2dQagdusBZg/0", "time": "2024-04-05 16:32:15"},
   { "evaluate_id": "4ui9nhn", "is_like": false, "like": 0, "group_id": "aaa-bbb-ccc-ddd-eee", "user": "跑步机上的蜗牛", "evaluate": "本来想慢跑，结果被隔壁大爷超了三圈", "img": "https://mmbiz.qpic.cn/mmbiz/icTdbqWNOwNRna42FI242Lcia07jQodd2FJGIYQfG0LAJGFxM4FbnQP6yfMxBgJ0F3YRqJCJ1aPAK2dQagdusBZg/0", "time": "2024-04-05 16:32:15"},
@@ -128,6 +114,10 @@ func (s SportType) DefaultEvaBoard() ([]*form.MsgBoard, error) {
   { "evaluate_id": "vmk90167", "is_like": false, "like": 0, "group_id": "aaa-bbb-ccc-ddd-eee", "user": "跑步机电量不足", "evaluate": "跑了一公里就气喘吁吁，怀疑自己上辈子是树懒", "img": "https://mmbiz.qpic.cn/mmbiz/icTdbqWNOwNRna42FI242Lcia07jQodd2FJGIYQfG0LAJGFxM4FbnQP6yfMxBgJ0F3YRqJCJ1aPAK2dQagdusBZg/0", "time": "2024-04-05 16:32:15"},
   { "evaluate_id": "z9u5612", "is_like": false, "like": 0, "group_id": "aaa-bbb-ccc-ddd-eee", "user": "杠铃举到飞起", "evaluate": "硬拉太猛，回家发现沙发都抬得轻松了", "img": "https://mmbiz.qpic.cn/mmbiz/icTdbqWNOwNRna42FI242Lcia07jQodd2FJGIYQfG0LAJGFxM4FbnQP6yfMxBgJ0F3YRqJCJ1aPAK2dQagdusBZg/0", "time": "2024-04-05 16:32:15"}
 ]`
+	} else {
+		data = `[
+			{ "evaluate_id": "2149ihasd", "is_like": false, "like": 0, "group_id": "aaa-bbb-ccc-ddd-eee", "user": "无艳组深圳分组", "evaluate": "太方便了，可以随意添加任何类型的运行，连厕所位置都可以添加，哈哈哈", "img": "https://ai.anythingai.online/static/profile3/2793.png", "time": "2024-04-05 16:32:15"}
+		]`
 	}
 
 	if err := json.Unmarshal([]byte(data), &evaData); err != nil {
