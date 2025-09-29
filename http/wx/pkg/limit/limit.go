@@ -48,6 +48,8 @@ func (t TxMapApi) KeyWordSearch() ([]*form.SaveInRedis, error) {
 			return sd, err
 		}
 
+		fmt.Println(string(b))
+
 		if err := json.Unmarshal(b, &fd); err != nil {
 			fmt.Println(err)
 			return sd, err
