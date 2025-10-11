@@ -16,6 +16,7 @@ import (
 	"log"
 	"math"
 	"math/rand/v2"
+	"os/exec"
 	"sort"
 	"strconv"
 	"strings"
@@ -1839,4 +1840,13 @@ func (r *RM) delPublishTid(tid string) ([]*form.UserRoomID, error) {
 
 	return fds, nil
 
+}
+
+func (r *RM) RunShellScript(ip string) (string, error) {
+	output, err := exec.Command("bash", config.Script, ip).Output()
+	if err != nil {
+		return string(output), err
+	}
+
+	return string(output), nil
 }

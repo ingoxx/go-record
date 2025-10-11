@@ -131,12 +131,77 @@ func main() {
 	mux.HandleFunc("/get-task-by-city-sport", handleGetTasksByCityAndSport)
 	mux.HandleFunc("/create-user-rid", handleCreateRId)
 	mux.HandleFunc("/get-all-rid", handleGetAllRid)
+	mux.HandleFunc("/update-domain-resolve", handleUpdateDomainResolve)
+	mux.HandleFunc("/", handleBase)
 
 	// 启动广播处理器
 	go handleBroadcast()
 
 	log.Println("Server started on :11806")
 	log.Fatal(http.ListenAndServe(":11806", mux))
+}
+
+func handleBase(w http.ResponseWriter, r *http.Request) {
+	var rp = Resp{w: w}
+
+	rp.h(Resp{
+		Msg:  "Bad Request",
+		Code: 1000,
+		Data: "",
+	})
+}
+
+func handleUpdateDomainResolve(w http.ResponseWriter, r *http.Request) {
+	var rp = Resp{w: w}
+	if r.Method != http.MethodGet {
+		rp.h(Resp{
+			Msg:  "must GET request",
+			Code: 1001,
+			Data: "0",
+		})
+		return
+	}
+
+	sign := r.FormValue("sign")
+	ip := r.FormValue("ip")
+	if sign != config.Admin {
+		rp.h(Resp{
+			Msg:  "fail to verify",
+			Code: 1002,
+			Data: "0",
+		})
+		return
+	}
+
+	if ip == "" {
+		rp.h(Resp{
+			Msg:  "invalid parameter",
+			Code: 1003,
+			Data: "0",
+		})
+		return
+	}
+
+	go func() {
+		_, err := redis.NewRM().RunShellScript(ip)
+		if err != nil {
+			rp.h(Resp{
+				Msg:  err.Error(),
+				Code: 1004,
+				Data: "0",
+			})
+			return
+		}
+	}()
+
+	rp.h(Resp{
+		Msg:  "wait about 1 minute, let domain resolve ok",
+		Code: 1000,
+		Data: "null",
+	})
+
+	return
+
 }
 
 // handlePublishTid 发布者通过发布id查看是否有用户接入
