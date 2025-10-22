@@ -10,7 +10,6 @@ import (
 	"os/exec"
 	"os/signal"
 	"sync"
-	"sync/atomic"
 	"time"
 )
 
@@ -28,7 +27,6 @@ type LoopSvnUp struct {
 }
 
 func (l *LoopSvnUp) runScript(t *ProjectsData) {
-	log.Println("processed ", l.totalProcessed)
 	var cancel context.CancelFunc
 	ctx, cancel := context.WithTimeout(context.Background(), config.TimeOUT)
 	defer cancel()
@@ -38,7 +36,6 @@ func (l *LoopSvnUp) runScript(t *ProjectsData) {
 		log.Printf("[ERROR] fail to run script, project '%s' error msg '%s'\n", t.Name, err.Error())
 	} else {
 		log.Printf("[INFO] %s update successfully\n", t.Name)
-		atomic.AddInt64(&l.totalProcessed, 1)
 	}
 }
 
@@ -59,45 +56,34 @@ func (l *LoopSvnUp) worker(ctx context.Context, tasks <-chan *ProjectsData, wg *
 
 func (l *LoopSvnUp) Run() {
 	tasks := make(chan *ProjectsData, config.QueueSize)
-	stop := make(chan os.Signal, 1)
 	ctx, cancel := context.WithCancel(context.Background())
-	var wg sync.WaitGroup
 
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, os.Interrupt)
+
+	var wg sync.WaitGroup
 	wg.Add(config.WorkerCount)
+
 	for i := 0; i < config.WorkerCount; i++ {
 		go l.worker(ctx, tasks, &wg)
 	}
 
-	go func() {
-		for {
-			select {
-			case <-time.After(config.LoopSleep):
-				if l.totalData == l.totalProcessed {
-					atomic.AddInt64(&l.totalProcessed, 0)
-					if err := l.task(tasks); err != nil {
-						log.Printf("[ERROR] fail to create task, error msg '%s'\n", err.Error())
-						cancel()
-						return
-					}
-				}
-			case <-ctx.Done():
+	for {
+		select {
+		case <-stop:
+			cancel()
+			close(tasks)
+			wg.Wait()
+			log.Println("exit ok")
+			return
+		case <-time.After(config.LoopSleep):
+			if err := l.task(tasks); err != nil {
+				log.Printf("[ERROR] fail to create task, error msg '%s'\n", err.Error())
+				cancel()
 				return
 			}
 		}
-	}()
-
-	l.stop(cancel, tasks, stop)
-
-	wg.Wait()
-
-	log.Println("exist ok")
-}
-
-func (l *LoopSvnUp) stop(cancel context.CancelFunc, tasks chan *ProjectsData, s chan os.Signal) {
-	signal.Notify(s, os.Interrupt)
-	<-s
-	cancel()
-	close(tasks)
+	}
 }
 
 func (l *LoopSvnUp) task(t chan *ProjectsData) error {
@@ -105,9 +91,6 @@ func (l *LoopSvnUp) task(t chan *ProjectsData) error {
 	if err != nil {
 		return err
 	}
-
-	l.totalData = int64(len(td.Projects))
-	l.totalProcessed = l.totalData
 
 	for _, v := range td.Projects {
 		select {
@@ -150,7 +133,7 @@ func (l *LoopSvnUp) parse() (TaskData, error) {
 }
 
 func main() {
-	log.Println("version v1.0.8")
+	log.Println("version v1.0.15")
 	var t = LoopSvnUp{}
 	t.Run()
 }
